@@ -1,0 +1,43 @@
+{
+  "paths": {
+    "phase1_processed_csv": "data/processed/sarawak_weather_processed.csv",
+    "baseline_results_csv": "baseline_simulation_results.csv",
+    "smart_results_csv": "smart_simulation_results.csv",
+    "rf_model_path": "models/rf_forecast_model.joblib"
+  },
+  "seed": {
+    "numpy_seed": 42
+  },
+  "battery": {
+    "capacity_kwh": 10.0,
+    "inverter_power_kw": 5.0,
+    "soc_min": 0.15,
+    "efficiency_rt": 0.95
+  },
+  "tariff": {
+    "peak_start_hour": 7,
+    "peak_end_hour": 22,
+    "peak_rate_rm_per_kwh": 0.245,
+    "offpeak_rate_rm_per_kwh": 0.139
+  },
+  "controller": {
+    "e_crit_kwh": 18.0,
+    "soc_reserve": 0.50,
+    "essential_discharge_kw": 0.0
+  },
+  "scenario": {
+    "pv_scale": 1.0,
+    "load_scale": 1.0,
+    "initial_soc_live": 0.50,
+    "initial_soc_daily_reset": 0.50
+  },
+  "evaluation": {
+    "headline_primary": "continuous_csv_cost_and_peak",
+    "daily_reset_soc_fraction_key": "scenario.initial_soc_daily_reset"
+  },
+  "pipeline": {
+    "run_phase1": false,
+    "run_phase3_train_model": false
+  }
+}
+

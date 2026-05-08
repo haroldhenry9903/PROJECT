@@ -1,9 +1,20 @@
+"""
+Legacy single-script Phase 1 pipeline: loads `data/raw/sarawak_weather_data.csv`, runs
+preprocess + pvlib synthesis in one process, and writes `data/processed/sarawak_weather_processed.csv`.
+
+The canonical split pipeline is `phase1a_data_cleaning.py` then `phase1b_physics_synthesis.py`
+using `data/raw/sarawak_weather20_25.csv` through cleaned → processed.
+"""
+
 import pandas as pd
 import pvlib
-from pvlib.pvsystem import PVSystem
 from pvlib.location import Location
 from pvlib.modelchain import ModelChain
+from pvlib.pvsystem import PVSystem
 from pvlib.temperature import TEMPERATURE_MODEL_PARAMETERS
+
+from repo_paths import repo_root, resolve_repo_path
+
 
 def load_and_preprocess_data(file_path: str) -> pd.DataFrame:
     """
@@ -102,9 +113,10 @@ def simulate_pv_generation(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def main():
-    input_filepath = 'sarawak_weather_data.csv'
-    output_filepath = 'sarawak_weather_processed.csv'
-    
+    repo = repo_root()
+    input_filepath = str(resolve_repo_path(repo, "data/raw/sarawak_weather_data.csv"))
+    output_filepath = str(resolve_repo_path(repo, "data/processed/sarawak_weather_processed.csv"))
+
     # Execute Step 1
     df_clean = load_and_preprocess_data(input_filepath)
     

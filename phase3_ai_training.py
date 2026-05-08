@@ -1,9 +1,20 @@
-import pandas as pd
-import numpy as np
+import json
+import sys
+
 import joblib
+import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
+
+from repo_paths import repo_root, resolve_repo_path
+
+
+def _load_config(config_path: str) -> dict:
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
 
 def load_and_engineer_features(filepath: str) -> pd.DataFrame:
     """
@@ -108,9 +119,17 @@ def train_and_evaluate_model(X_train, X_test, y_train, y_test, model_save_path: 
     print("Phase 3: AI Training completed successfully!")
 
 def main():
-    input_filepath = 'sarawak_weather_processed.csv'
-    model_save_path = 'rf_forecast_model.joblib'
-    
+    repo = repo_root()
+    config_path = sys.argv[sys.argv.index("--config") + 1] if "--config" in sys.argv else "experiment_config.json"
+    cfg_path = resolve_repo_path(repo, config_path)
+    cfg = _load_config(str(cfg_path))
+    paths = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+
+    input_filepath = str(
+        resolve_repo_path(repo, paths.get("phase1_processed_csv", "data/processed/sarawak_weather_processed.csv"))
+    )
+    model_save_path = str(resolve_repo_path(repo, paths.get("rf_model_path", "models/rf_forecast_model.joblib")))
+
     # 1. Load and engineer features
     df = load_and_engineer_features(input_filepath)
     
@@ -122,3 +141,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

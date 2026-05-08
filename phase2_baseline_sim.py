@@ -1,76 +1,21 @@
-import pandas as pd
+import json
+import sys
+
 import numpy as np
+import pandas as pd
 
-class Battery:
-    def __init__(self, capacity_kwh=10.0, max_power_kw=5.0, soc_min=0.15, soc_max=1.0, efficiency_rt=0.95):
-        self.capacity_kwh = capacity_kwh
-        self.max_power_kw = max_power_kw
-        self.soc_min = soc_min
-        self.soc_max = soc_max
-        # Efficiency factors
-        self.eff_chg = np.sqrt(efficiency_rt)
-        self.eff_dis = np.sqrt(efficiency_rt)
-        
-        # Initial SoC set to soc_min
-        self.soc = soc_min
-
-    def update_soc(self, p_request_kw: float) -> float:
-        """
-        Calculates the battery action based on requested power.
-        Positive p_request_kw means discharging (providing power to load).
-        Negative p_request_kw means charging (absorbing surplus PV).
-        Returns the actual power provided/absorbed by the battery.
-        """
-        # Calculate max energy limits based on current SoC
-        max_charge_kwh = (self.soc_max - self.soc) * self.capacity_kwh
-        max_discharge_kwh = (self.soc - self.soc_min) * self.capacity_kwh
-
-        if p_request_kw > 0.0:  # Discharge attempt
-            # Limit by max inverter power
-            p_discharge = min(p_request_kw, self.max_power_kw)
-            
-            # Equation 3.10 refinement: dividing discharging power by discharge efficiency factor.
-            # This represents the energy practically drawn from the battery.
-            e_discharge_needed = p_discharge / self.eff_dis
-            
-            # Clamp to max discharge capacity
-            e_discharge_actual = min(e_discharge_needed, max_discharge_kwh)
-            
-            # The useful power delivered to the grid/load after efficiency losses
-            p_actual_delivered = e_discharge_actual * self.eff_dis
-            
-            # Update SoC
-            self.soc -= e_discharge_actual / self.capacity_kwh
-            return p_actual_delivered
-            
-        elif p_request_kw < 0.0:  # Charge attempt
-            p_charge = min(abs(p_request_kw), self.max_power_kw)
-            
-            # Equation 3.10 refinement: multiplying charging power by efficiency factor.
-            # This represents the actual energy stored in the battery.
-            e_charge_effective = p_charge * self.eff_chg
-            
-            # Clamp to max charge capacity
-            e_charge_actual = min(e_charge_effective, max_charge_kwh)
-            
-            # The power drawn from the source (PV/Grid) before efficiency losses
-            p_actual_absorbed = e_charge_actual / self.eff_chg
-            
-            # Update SoC
-            self.soc += e_charge_actual / self.capacity_kwh
-            return -p_actual_absorbed
-            
-        else:
-            return 0.0
+from core_battery_model import Battery
+from repo_paths import repo_root, resolve_repo_path
 
 
-def generate_synthetic_load(index: pd.DatetimeIndex) -> pd.Series:
+def generate_synthetic_load(index: pd.DatetimeIndex, *, rng: np.random.Generator) -> pd.Series:
     """
     Generates a synthetic residential load profile.
-    - Low at night
+    - Lower at night
     - Morning peak (06:00 - 08:00)
-    - Evening peak (18:00 - 22:00)
-    - Total daily consumption around 15-20 kWh
+    - Evening peak (18:00 - 22:00) is the highest
+    - Weekend slightly higher than weekday
+    - Daily consumption targeted around 15-20 kWh
     - Added stochastic noise
     """
     hours = index.hour
@@ -79,10 +24,10 @@ def generate_synthetic_load(index: pd.DatetimeIndex) -> pd.Series:
     # We will scale this base shape and add noise.
     base_shape = np.zeros(len(index))
     
-    # Simple predefined shape rules
-    # Night time (00:00 - 05:00): Heavy EV Charging / AC
+    # Simple predefined shape rules (relative shape, will be scaled per-day to a target kWh)
+    # Night time (00:00 - 05:00): Base/essential loads
     mask_night = (hours >= 0) & (hours < 6)
-    base_shape[mask_night] = 1.8
+    base_shape[mask_night] = 0.45
     
     # Morning peak (06:00 - 08:00): Ramping up
     mask_morning = (hours >= 6) & (hours <= 8)
@@ -90,11 +35,11 @@ def generate_synthetic_load(index: pd.DatetimeIndex) -> pd.Series:
     
     # Mid-day (09:00 - 17:00): Moderate consumption
     mask_day = (hours >= 9) & (hours <= 17)
-    base_shape[mask_day] = 0.5
+    base_shape[mask_day] = 0.6
     
     # Evening peak (18:00 - 22:00): High consumption
     mask_evening = (hours >= 18) & (hours <= 22)
-    base_shape[mask_evening] = 1.2
+    base_shape[mask_evening] = 1.8
     
     # Late night (23:00): Winding down
     mask_late = (hours == 23)
@@ -103,20 +48,31 @@ def generate_synthetic_load(index: pd.DatetimeIndex) -> pd.Series:
     # Add day-by-day stochastic noise (normal distribution)
     # Adding a random scaling factor per day to keep the overall shape but vary intensity
     days = index.normalize()
-    unique_days = days.unique()
+    unique_days = pd.Index(days.unique()).sort_values()
     
     load = pd.Series(base_shape, index=index)
     
-    # Scale base shape to reach ~15-20 kWh daily average
-    # The sum of base_shape per day is roughly 14.3. 
-    # We will multiply by a scaling factor centered around 1.2
     for day in unique_days:
         day_mask = days == day
-        daily_variation = np.random.normal(loc=1.2, scale=0.15)
+        # Weekend effect (Sat/Sun)
+        is_weekend = pd.Timestamp(day).dayofweek >= 5
+        weekend_mult = 1.10 if is_weekend else 1.00
+
+        # Target daily energy (kWh) ~ 15-20 kWh
+        target_kwh = float(rng.uniform(15.0, 20.0)) * weekend_mult
+
+        # Day-level stochastic variation
+        daily_variation = float(rng.normal(loc=1.0, scale=0.08))
         # Add hourly noise
-        hourly_noise = np.random.normal(loc=1.0, scale=0.1, size=day_mask.sum())
+        hourly_noise = rng.normal(loc=1.0, scale=0.1, size=day_mask.sum())
         
-        load.loc[day_mask] = load.loc[day_mask] * daily_variation * hourly_noise
+        profile = load.loc[day_mask].astype(float) * daily_variation * hourly_noise
+        profile = profile.clip(lower=0.1)
+
+        # Scale to match target daily kWh (since 1-hour steps, sum(kW) ≈ kWh/day)
+        day_sum = float(profile.sum())
+        scale = 1.0 if day_sum <= 0 else (target_kwh / day_sum)
+        load.loc[day_mask] = (profile * scale).clip(lower=0.1)
         
     # Ensure no negative loads
     load = load.clip(lower=0.1)
@@ -134,20 +90,65 @@ def get_tariff_rate(hour: int) -> float:
     else:
         return 0.139
 
+
+def _load_config(config_path: str) -> dict:
+    with open(config_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def normalize_datetime_series_to_naive(s: pd.Series) -> pd.Series:
+    """Parse datetimes and ensure tz-naive timestamps (legacy tz-aware CSVs are normalized)."""
+    dt = pd.to_datetime(s, errors="coerce")
+    if getattr(dt.dt, "tz", None) is not None:
+        # Drop timezone while keeping local clock time (pipeline standard is tz-naive)
+        dt = dt.dt.tz_localize(None)
+    return dt
+
+
+def tariff_rate_from_config(hour: int, *, tariff_cfg: dict) -> float:
+    """Tariff from config (single source of truth). Falls back to C3 defaults if keys missing."""
+    peak_start = int(tariff_cfg.get("peak_start_hour", 7))
+    peak_end = int(tariff_cfg.get("peak_end_hour", 22))
+    peak_rate = float(tariff_cfg.get("peak_rate_rm_per_kwh", 0.245))
+    offpeak_rate = float(tariff_cfg.get("offpeak_rate_rm_per_kwh", 0.139))
+    return peak_rate if peak_start <= hour < peak_end else offpeak_rate
+
 def main():
-    input_filepath = 'sarawak_weather_processed.csv'
-    output_filepath = 'baseline_simulation_results.csv'
+    repo = repo_root()
+    config_path = sys.argv[sys.argv.index("--config") + 1] if "--config" in sys.argv else "experiment_config.json"
+    cfg_path = resolve_repo_path(repo, config_path)
+    cfg = _load_config(str(cfg_path))
+
+    input_filepath = str(
+        resolve_repo_path(repo, cfg.get("paths", {}).get("phase1_processed_csv", "data/processed/sarawak_weather_processed.csv"))
+    )
+    output_filepath = str(
+        resolve_repo_path(repo, cfg.get("paths", {}).get("baseline_results_csv", "baseline_simulation_results.csv"))
+    )
+    seed = int(cfg.get("seed", {}).get("numpy_seed", 42))
+    rng = np.random.default_rng(seed)
+    tariff_cfg = cfg.get("tariff", {}) if isinstance(cfg, dict) else {}
     
     print(f"Loading Phase 1 synthesized data from {input_filepath}...")
     df = pd.read_csv(input_filepath)
-    df['datetime'] = pd.to_datetime(df['datetime'])
+    df['datetime'] = normalize_datetime_series_to_naive(df['datetime'])
     df.set_index('datetime', inplace=True)
     
     print("Generating synthetic residential load profile...")
-    df['Load_kW'] = generate_synthetic_load(df.index)
+    df['Load_kW'] = generate_synthetic_load(df.index, rng=rng)
     
     print("Initializing Battery and storing simulation results...")
-    battery = Battery()
+    batt_cfg = cfg.get("battery", {})
+    capacity_kwh = float(batt_cfg.get("capacity_kwh", 10.0))
+    inverter_power_kw = float(batt_cfg.get("inverter_power_kw", 5.0))
+    soc_min = float(batt_cfg.get("soc_min", 0.15))
+    efficiency_rt = float(batt_cfg.get("efficiency_rt", 0.95))
+    battery = Battery(
+        capacity_kwh=capacity_kwh,
+        max_charge_kw=inverter_power_kw,
+        max_discharge_kw=inverter_power_kw,
+        soc_min=soc_min,
+        efficiency_rt=efficiency_rt,
+    )
     
     # Prepare lists to store our hourly results
     soc_history = []
@@ -181,7 +182,7 @@ def main():
         grid_import_kw = max(0.0, p_grid)
         
         # Calculate cost
-        tariff_rate = get_tariff_rate(dt.hour)
+        tariff_rate = tariff_rate_from_config(dt.hour, tariff_cfg=tariff_cfg) if tariff_cfg else get_tariff_rate(dt.hour)
         hourly_cost_rm = grid_import_kw * tariff_rate
         
         # Store tracking info

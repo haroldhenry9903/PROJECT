@@ -1,0 +1,56 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs / temp
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE (optional)
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Large document binaries (keep out of git; include in submission zip if needed)
+*.pdf
+*.docx
+
+# ---- Project-specific generated artifacts ----
+# Pipeline outputs (always regenerate)
+results/
+baseline_simulation_results.csv
+smart_simulation_results.csv
+
+# Trained model artifacts (regenerate)
+models/*.joblib
+*.joblib
+
+# Generated figures/plots (regenerate)
+docs/figures/*.png
+eda_metrics/*.png
+
+# Data (large and/or derived; do not track in git)
+data/raw/
+data/processed/
