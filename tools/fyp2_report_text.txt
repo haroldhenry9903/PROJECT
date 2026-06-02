@@ -1,0 +1,1204 @@
+
+
+
+
+Faculty of Computer Science and Information Technology
+
+
+
+AI-PREDICTED SOLAR GENERATION FOR OPTIMIZED RULE-BASED SCHEDULING OF HYBRID SOLAR BATTERY SYSTEM: A SARAWAK SIMULATION
+
+
+
+
+
+
+
+
+Harold bin Henry
+
+
+
+
+
+
+
+Bachelor of Computer Science with Honours
+(Information Systems)
+2026
+AI-PREDICTED SOLAR GENERATION FOR OPTIMIZED RULE-BASED SCHEDULING OF HYBRID SOLAR BATTERY SYSTEM: A SARAWAK SIMULATION
+
+
+
+
+
+
+
+A thesis submitted
+In partial fulfilment of the requirements for the degree of Bachelor of Computer Science with Honours
+(Information Systems)
+
+
+
+
+Faculty of Computer Science and Information Technology
+UNIVERSITI MALAYSIA SARAWAK
+2026
+
+DECLARATION
+I declare that the work in this thesis was carried out in accordance with the regulations of Universiti Malaysia Sarawak. Except where due acknowledgements have been made, the work is that of the author alone. The thesis has not been accepted for any degree and is not concurrently submitted in candidature of any other degree.
+
+
+--- TABLE START ---
+…………………………… Signature | 
+Name: Harold bin Henry | 
+Matric No.: 82580 | 
+Faculty of Computer Science and Information Technology
+Universiti Malaysia Sarawak
+Date :
+--- TABLE END ---
+
+
+ACKNOWLEDGEMENT
+First and foremost, I wish to express my sincere gratitude to my supervisor, Dr. Lee Nung Kion, for his guidance, patience, and mentorship throughout this Final Year Project. His constructive feedback and technical advice were invaluable in shaping the direction of this study and in strengthening the methodology behind the simulation and analysis presented in this report.
+I am also deeply grateful to the technical support team at Visual Crossing Weather Data Services for their generosity in providing an academic licence upgrade. Access to historical solar irradiance and meteorological data was essential for building a credible simulation environment and for supporting the multi-region analysis carried out across Sarawak in this work.
+My thanks extend to the Faculty of Computer Science and Information Technology, Universiti Malaysia Sarawak (UNIMAS), for the academic facilities, resources, and learning environment that made this research possible.
+Finally, I dedicate this work to my family and friends. I owe my deepest gratitude to my parents for their unconditional love, sacrifice, and belief in me. To my friends and colleagues, thank you for your encouragement, late-night support, and for helping me through the challenges of completing this project.
+
+
+ABSTRACT
+Residential photovoltaic (PV) adoption in Sarawak is limited by solar intermittency and a mismatch between midday generation and evening demand. Under Time of Use (ToU) pricing, which is already applied commercially and plausible for future residential tariffs, reactive self consumption can discharge stored energy during cheap off peak periods and leave insufficient reserves for expensive peak hours. This project develops an AI assisted, rule based battery control strategy evaluated through a Python digital twin simulation of a grid tied home with a 5 kWp PV array and a 10 kWh battery. Historical meteorological data from five Sarawak divisions (Kuching, Miri, Bintulu, Kapit, and Sri Aman) drive physics based solar output modelling and day ahead hourly solar power forecasts using Random Forest and Support Vector Regression. Forecasts activate a proactive Conservation Mode on predicted low solar days, compared against a conventional self consumption baseline under a simplified peak and off peak tariff. Results show consistent annual electricity cost reductions across all regions (approximately RM 9 to 26 per simulated year, depending on location and forecaster), with statistically significant daily savings. An interactive Streamlit dashboard presents forecasts, energy flows, and economic outcomes. The study demonstrates that forecast informed, interpretable control can improve residential economics under tropical ToU conditions without physical hardware deployment.
+Keywords:Residential Photovoltaics, Battery Control Strategy, Solar Power Forecasting, Time of Use Tariff, Digital Twin Simulation
+
+
+
+ABSTRAK
+Penggunaan sistem fotovoltaik (PV) kediaman di Sarawak adalah terhad disebabkan oleh penjanaan tenaga suria yang tidak menentu serta ketidaksepadanan antara penjanaan pada waktu tengah hari dan permintaan pada waktu malam. Di bawah struktur harga Masa Penggunaan (ToU) yang kini diaplikasikan secara komersial dan berpotensi untuk tarif kediaman pada masa hadapan, penggunaan kendiri secara reaktif boleh menyebabkan tenaga yang disimpan dinyahcas semasa tempoh luar puncak yang murah, dan meninggalkan rizab yang tidak mencukupi untuk waktu puncak yang mahal. Projek ini membangunkan strategi kawalan bateri berasaskan peraturan dengan bantuan AI, yang dinilai melalui simulasi kembar digital Python untuk sebuah rumah yang bersambung dengan grid, dilengkapi sistem PV 5 kWp dan bateri 10 kWh. Data meteorologi sejarah dari lima bahagian di Sarawak (Kuching, Miri, Bintulu, Kapit dan Sri Aman) digunakan untuk memacu pemodelan output suria berasaskan fizik serta ramalan kuasa suria setiap jam sehari lebih awal menggunakan model Random Forest dan Support Vector Regression. Ramalan ini akan mengaktifkan Mod Pemuliharaan secara proaktif pada hari yang dijangka mempunyai kadar sinaran suria yang rendah, yang kemudiannya dibandingkan dengan garis dasar penggunaan kendiri konvensional di bawah struktur tarif puncak dan luar puncak yang dipermudahkan. Keputusan menunjukkan pengurangan kos elektrik tahunan yang konsisten merentasi semua kawasan (sekitar RM 9 hingga 26 bagi setiap tahun simulasi, bergantung kepada lokasi dan model ramalan), dengan penjimatan harian yang signifikan secara statistik. Sebuah papan pemuka Streamlit interaktif memaparkan ramalan, aliran tenaga serta hasil ekonomi. Kajian ini membuktikan bahawa sistem kawalan yang berpandukan ramalan dan mudah ditafsir mampu meningkatkan penjimatan ekonomi kediaman di bawah keadaan ToU iklim tropika tanpa memerlukan pemasangan perkakasan fizikal. 
+Kata kunci:Fotovoltaik Kediaman, Strategi Kawalan Bateri, Ramalan Kuasa Suria, Tarif Masa Penggunaan, Simulasi Kembar Digital
+
+
+
+
+
+TABLE OF CONTENTS
+Page
+DECLARATIONi
+ACKNOWLEDGEMENTii
+ABSTRACTiii
+ABSTRAKiv
+TABLE OF CONTENTSvi
+LIST OF TABLESxiii
+LIST OF FIGURESxiv
+LIST OF ABBREVIATIONSxv
+CHAPTER 1INTRODUCTION16
+1.1Study Background16
+1.2Problem Statement18
+1.3Objectives19
+1.4Methodology20
+1.4.1Phase 1: Concept20
+1.4.2Phase 2: Inception21
+1.4.3Phase 3: Iteration (or Construction)21
+1.4.4Phase 4: Release21
+1.4.5Phase 5: Maintenance22
+1.4.6Phase 6: Retirement22
+1.5Scope22
+1.6Significance of Project23
+1.7Project Schedule24
+1.8Project Outcome24
+CHAPTER 2Literature review26
+2.1Introduction26
+2.2Solar Photovoltaic (PV) Systems and Intermittency27
+2.2.1Photovoltaic Conversion Technology27
+2.2.2The Challenge of Stochastic Intermittency28
+2.3Hybrid Solar Battery Systems as a  Solution29
+2.3.1System Architecture and Functionality29
+2.3.2Application in Sarawak: Off-Grid Reliability31
+2.4Economic Drivers: From Reliability to Optimization32
+2.4.1The Paradigm Shifts: Grid-Tied Economic Optimization32
+2.4.2The Evolution of Pricing Mechanisms (Tariff Structures)32
+2.4.3Local Context and the Optimization Challenge33
+2.5Machine Learning for Solar Forecasting34
+2.5.1The Shift to Data-Driven Forecasting34
+2.5.2Overview of Prominent Algorithms34
+2.5.3Comparative Analysis37
+2.5.4Justification for Algorithmic Selection40
+2.6Battery Optimization Strategies41
+2.6.1The Need for Intelligent Control41
+2.6.2Overview of Control Paradigms43
+2.6.3Comparative Analysis45
+2.6.4Justification for Control Strategy Selection47
+2.7Comparative Review of Existing Systems48
+2.7.1Overview of Current Approaches48
+2.7.2System A: Off Grid Reliability vs. Grid Tied Economics49
+2.7.3System B: Computational Efficiency in Control50
+2.7.4System C: Capacity Planning in the Malaysian Context52
+2.7.5System D: Complexity vs. Interpretability in AI53
+2.7.6Summary of Comparative Features54
+2.8Summary and Research Gap58
+CHAPTER 3methodology64
+3.1Introduction64
+3.2General Research Framework65
+3.2.1System Architecture65
+3.2.2Research Workflow66
+3.3Data Acquisition and Preprocessing67
+3.3.1Meteorological Data Sourcing67
+3.3.2Data Preprocessing and Cleaning68
+3.3.3Synthetic Generation of Ground Truth68
+3.3.4Exploratory Data Analysis Protocol68
+3.4Baseline Method Formulation69
+3.4.1Concept Definition69
+3.4.2Control Logic69
+3.4.3Limitations69
+3.5Proposed Method: AI-Powered Optimization69
+3.5.1Development of Forecasting Module70
+3.5.2Development of Optimization Algorithm72
+3.6Simulation Environment73
+3.6.1Battery and Inverter Modeling73
+3.6.2Household Load Profiling73
+3.6.3Dashboard Development74
+3.7Performance Evaluation Metrics74
+3.7.1Predictive Accuracy Metrics74
+3.7.2Economic and Operational Performance Metrics74
+3.7.3Sensitivity Analysis74
+CHAPTER 4Implementation and results76
+4.1Introduction76
+4.1.1Scope of the Chapter76
+4.1.2Mapping to Chapter 376
+4.2Development Environment and Software Stack77
+4.2.1Language and Environment77
+4.2.2Core Dependencies77
+4.2.3Single Source of Truth: experiment_config.json78
+4.3System Architecture and Repository Layout78
+4.3.1High Level Module Diagram78
+4.3.2Data and Artifact Directories79
+4.4Implementation by Pipeline Phase79
+4.4.1Phase 1: Multiple Region Ingestion and Cleaning79
+4.4.2Phase 1b: Physical Synthesis80
+4.4.3Phase 2: Baseline Simulation80
+4.4.4Phase 3: Forecaster Training and Diagnostics81
+4.4.5Phase 4: Smart Policy Simulation83
+4.4.6Orchestration: run_all.py85
+4.4.7Phase 5: Streamlit Dashboard85
+4.5Automated Validation, Quality Assurance, and Unit Tests86
+4.5.1Runtime Checks in run_all.py86
+4.5.2Pytest Suite86
+4.6Experimental Results87
+4.6.1Headline Economic and Energy KPIs87
+4.6.2Statistical Significance89
+4.6.3Conservation Threshold Sensitivity Sweep89
+4.6.4Daily Reset Evaluation versus Continuous Run90
+4.7Discussion90
+4.7.1Interpretation90
+4.7.2Threats to Validity90
+4.8Chapter Summary91
+CHAPTER 5Testing92
+5.1Introduction92
+5.2Test Environment92
+5.3Automated Test Cases (pytest)93
+5.3.1Data & Multi-Region Contract94
+5.3.2Forecast-Error Model96
+5.3.3Smart Simulation Core99
+5.4System Validation101
+5.5Summary102
+CHAPTER 6Conclusion104
+6.1Introduction104
+6.2Summary of the Project Work104
+6.2.1Problem and Approach104
+6.2.2What was Built105
+6.3Conclusions106
+6.3.1Research Question and Hypothesis106
+6.3.2Main Technical Contributions107
+6.3.3Objectives Mapping107
+6.4Limitations108
+6.4.1Data and Labels108
+6.4.2Load and Dwelling108
+6.4.3Hardware and Tariff Generality109
+6.4.4Machine Learning109
+6.4.5Software Scope109
+6.5Future Work109
+6.6Chapter Closing110
+REFERENCES112
+APPENDICES116
+
+LIST OF TABLES
+Page
+Table 2.1Example of a Table1
+Table 2.2Example of a Long Table1
+Table 3.1Thesis Outline1
+Table 3.2Chapter Outline1
+
+
+LIST OF FIGURES
+Page
+Figure 2.1Example of a Figure1
+
+LIST OF ABBREVIATIONS
+
+--- TABLE START ---
+ | 
+FCSIT | Faculty of Computer Science and Information Technology
+UNIMAS | Universiti Malaysia Sarawak
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+ | 
+--- TABLE END ---
+
+
+
+INTRODUCTION
+Study Background
+Global efforts to combat climate change and improve energy security have accelerated the adoption of renewable technologies, with solar power emerging as a key solution due to its vast natural abundance (Ahmed et al., 2025). Solar photovoltaic (PV) power is currently the most widely used electricity source globally based on the number of installations due to the ongoing reduction in PV panel prices and the rise in solar cell efficiency (Ahmed et al., 2025).
+Even though solar PV systems are widely used and reasonably priced, their energy generation during daylight is exceedingly unpredictable as it is closely related to changing weather conditions (Soo et al., 2025). This variability, combined with the sun's daily cycle, causes a mismatch between supply and demand. Solar power is abundant at midday, but households use the most energy when the sun is low, especially in the mornings and evenings. Moreover, this mismatch becomes a major financial burden under Time-of-Use (ToU) tariffs, a pricing system where electricity costs significantly more during specific times of the day. Sarawak Energy Berhad currently implements ToU tariffs for the commercial and industrial sectors, such as Tariff C3, making the extension of this pricing structure to residential users a logical and technically feasible step toward demand-side management.
+While initiatives like the Sarawak Alternative Rural Electrification Scheme (SARES) operate off-grid to ensure basic reliability, applying this same technology to a grid-tied residence fundamentally shifts the objective toward economic optimization (Memon et al., 2023). We need more than hardware that reacts to current conditions; we need a smart system that proactively anticipates future requirements (Mohammad & Mahjabeen, 2023).
+  This Final Year Project develops a reproducible Python simulation platform, a digital twin for a grid-tied residential PV and battery system under a configurable peak/off-peak ToU tariff (Muzmar et al., 2015). Unlike a single-city case study, the implemented system evaluates five administrative divisions in Sarawak: Kuching, Miri, Bintulu, Kapit, and Sri Aman, using region-specific latitude and longitude when synthesizing PV output. Historical weather fields are prepared as strict hourly time series, gap-filled and split per region, then converted into AC-side PV power using a physics-based pvlib ModelChain, producing a ground-truth column (Target_Power_kW) used consistently by forecasting, baseline simulation, and smart control.
+Day-ahead decisions are supported by machine learning regressors that predict hourly Target_Power_kW from seven inputs: global horizontal irradiance, temperature, humidity, precipitation, cloud cover, hour, and month. To study algorithmic robustness, the project trains and compares two scikit-learn estimators per region: a Random Forest regressor and a Support Vector Regression (RBF kernel) inside a pipeline with feature scaling. Both models share the same chronological split and time-series cross-validation so differences in savings reflect modeling bias, not a different controller implementation.
+The smart controller is not a black-box end-to-end reinforcement learner. It is a transparent, forecast-informed rule-based policy whose parameters include a low-solar energy threshold and a state-of-charge reserve for peak-period discharge prioritization. Each midnight, the policy estimates the next-day total PV energy from the 24-hour ahead hourly predictions and activates "Conservation Mode" on predicted low-solar days. Because the PV target is a deterministic function of weather inputs, the implementation deliberately applies a seeded forecast-error perturbation to the next-day weather features before prediction, preventing an unrealistic perfect-foresight oracle that would inflate savings. A multi-seed sensitivity sweep over forecast noise intensity is used to report the mean and variability of annual savings.
+The work is packaged as a configuration-driven pipeline (experiment_config.json) orchestrated by run_all.py, which exports per-region, per-algorithm result bundles. A Streamlit dashboard provides an interactive interface to load a saved run, switch regions and forecasting algorithms, and inspect training diagnostics, validation checks, statistical significance tests, and sensitivity curves.
+
+Problem Statement 
+The fundamental technical challenge hindering the efficiency of grid-tied hybrid solar-battery systems in Sarawak is the stochastic nature of solar irradiance combined with the lack of predictive control logic in typical residential energy management (Mohammad & Mahjabeen, 2023). In tropical climates like Sarawak, high-frequency cloud cover and seasonal monsoon variations create severe fluctuations in power generation known as intermittency (Soo et al., 2025). This creates a temporal mismatch between peak generation during midday and peak residential demand in the evening, which becomes a critical financial liability under Time-of-Use (ToU) tariff structures where electricity rates surge during specific peak windows for example, Sarawak Energy Tariff C3 in the commercial sector, which motivates analogous residential pricing in future grid-modernisation scenarios (Muzmar et al., 2015).   
+Current commercial approaches often rely on deterministic reactive control or self-consumption logic (Pan et al., 2022). These systems follow strict, largely static rules: they charge when solar exceeds load and discharge when load exceeds solar. The shortcoming of such an approach is that it is myopic: it responds only to the present situation without adequate consideration of the near future (Notton et al., 2018). For example, a reactive controller may discharge the battery during a cheap off-peak period to support a small load, thereby depleting reserves needed for an expensive peak window later the same day (Pan et al., 2022). Moreover, traditional timer-based scheduling is insufficient because it cannot adapt to variable daily weather; a fixed discharge plan may fail if the battery never charged due to an unexpected afternoon storm (Notton et al., 2018).   
+This lack of look-ahead capability leads to suboptimal energy dispatch, where stored renewable energy is used during low-value periods, forcing the homeowner to import expensive grid power during peak hours.  At the same time, Sarawak’s geography produces different weather regimes across divisions; a solution validated in only one city may not generalise (Soo et al., 2025). There remains a need for research that integrates Sarawak-relevant solar forecasting with interpretable, rule-based battery control under ToU economics, and that quantifies whether such forecasting can outperform standard non-predictive controllers in a simulation environment that is rigorous enough for academic evaluation. This project addresses that gap through a reproducible digital-twin study; the detailed methodology and metrics are defined in Chapter 3.
+Objectives
+The objectives of this project are:
+To develop a multi-region digital twin simulation framework for a grid-tied PV and battery system, integrating machine learning forecasting (Random Forest and SVR) with a predictive rule-based controller to optimize energy dispatch under Time-of-Use (ToU) tariffs.
+To evaluate the system’s economic and operational performance against deterministic baselines using rigorous statistical and sensitivity analyses, and to deliver an interactive Streamlit dashboard for reproducible visualization of the results.
+
+Methodology
+This project will follow the Agile Software Development Life Cycle (SDLC). The Agile SDLC is an iterative software development methodology that emphasizes feedback, flexibility, teamwork, and incremental delivery of working software (Ihor, 2021). The Agile SDLC methodology consists of six main phases: Concept, Inception, Iteration, Release, Maintenance, and Retirement, as illustrated in Figure 1.1. This approach is suitable because the forecasting and control components are experimental and benefit from iterative refinement and risk management within the FYP timeline. By adhering to this structured Agile framework, the project ensures a systematic yet adaptive development process, allowing continuous refinement of the forecasting and optimisation components to deliver a robust and verifiable solution within the project timeline.
+
+Figure 1.1: Agile Software Development Life Cycle (Ihor, 2021)
+
+Phase 1: Concept
+This initial phase is represented by the project proposal. It involves defining the project scope, vision, and objectives. The core requirement is identified as creating a system that optimizes battery usage based on artificial intelligence solar forecasts under dynamic pricing (Mohammad & Mahjabeen, 2023). Feasibility is determined, and a high-level project timeline is established.
+Phase 2: Inception
+This phase marks the start of development. As a solo project, this involves organising the development environment and tools. The initial architecture is defined at a high level: a virtual home (digital twin) simulation, a data and forecasting pipeline, a rule-based optimiser, and a Streamlit user interface mock-up.  Detailed design specifications are documented in Chapter 3.
+Phase 3: Iteration (or Construction)
+In this phase, the system is constructed in iterative sprints. Early sprints establish the simulation foundation (battery model, load representation, and ToU costing). Subsequent sprints develop and refine the forecasting module and the rule-based controller, including Conservation Mode logic.  Further iterations extend the study to multiple Sarawak regions and add comparative forecasting models. The dashboard is built incrementally, adding visualisation of energy flows, forecasts, and economic outcomes.  Testing and refinement continue until the integrated prototype meets the project objectives. Implementation specifics are not elaborated in this chapter; they are presented in Chapter 3.
+Phase 4: Release
+This phase involves final integration of all components. The complete functional application undergoes final testing to identify and correct remaining issues. Project documentation, including this report, is completed, and the system is prepared for final demonstration and evaluation.
+Phase 5: Maintenance
+In the context of this project, this phase is represented by the period immediately following the final demonstration. It involves receiving feedback from evaluators. This feedback, together with any issues discovered during demonstration, will be documented as limitations or future work in the final report.
+Phase 6: Retirement
+As this is a time-boxed academic project, the Retirement phase is not applicable to this project's scope.
+Scope
+The scope of this project is strictly limited to the design, development, and simulation of an optimization system within a Python environment. The study models a hybrid solar battery system connected to the grid using several key parameters. First, it uses a representative residential configuration, such as a rooftop solar array with 10 kilowatt hours of battery storage and inverter power limits appropriate to a domestic setting. Second, it utilizes predefined synthetic residential load profiles suitable for controlled comparison rather than data from smart meters in real homes. Third, it incorporates historical meteorological data for multiple Sarawak regions, including Kuching, Miri, Bintulu, Kapit, and Sri Aman, obtained and prepared for simulation purposes. Finally, it employs solar generation modeling utilizing the library to simulate physical characteristics.
+The policy targets cost reduction under an assumed future residential ToU tariff (peak/off-peak), which is a reasonable scenario given existing commercial ToU structures and demand-side management trends (Muzmar et al., 2015). An interactive Streamlit dashboard showcases system behaviour in this simulated environment. Explicitly excluded from scope are real-time control of physical hardware, live utility or inverter integration, home load forecasting, feed-in tariff revenue modelling, distribution-network constraints, and advanced optimisation paradigms such as reinforcement learning as the primary controller are excluded to keep the project feasible and interpretable within the FYP timeframe.  Detailed evaluation protocols and sensitivity studies are described in Chapter 3, not in this introductory chapter.
+
+Significance of Project
+This study is important because it provides a strategic approach to increasing the economic viability of hybrid solar battery systems among Sarawak households. In an environment already operational in the commercial sector and anticipated for residential expansion, the project moves beyond thinking constrained by fixed pricing and examines when energy is imported from the grid rather than only how much (Muzmar et al., 2015). It supports a quantifiable narrative: shifting battery use away from expensive peak periods by using forecast-informed control rather than reactive self-consumption alone.
+By covering multiple Sarawak regions, the work strengthens the claim that the proposed approach is relevant across different local weather conditions, not only in one divisional capital. The AI-powered method also contributes to the broader technical discussion of demand-side management in tropical climates showing, in simulation, that residential systems can anticipate solar availability and reduce grid reliance during critical demand hours. This aligns individual homeowner savings with utility goals to ease peak load pressure and offers an intelligible basis for energy management under Sarawak's economic and climatic context.
+
+Project Schedule
+The project is intended for completion within the standard duration spanning two academic semesters. A detailed schedule for the first semester is shown in the Gantt chart in figure 1.2, covering the period from October 2025 to July 2026. This schedule aligns with the Agile methodology, including proposal writing, literature review, methodology design, and initial construction of the simulation prototype. The chart also indicates key submission milestones for report chapters, the final report, and the symposium as required by the university. A full timeline charting both semesters will be included in the final project documentation, including multiple region extension, comparative modeling, integrated evaluation, and dashboard completion.
+
+Figure 1.2: Gantt Chart for Project Schedule
+
+Project Outcome
+This project is expected to conclude with a functional simulation presented through an interactive dashboard. The system will integrate machine learning models trained to estimate hourly solar generation under Sarawak conditions and an optimization algorithm that uses those forecasts to manage battery dispatch under a dynamic tariff. This includes activating a conservation mode on low solar days.   
+The dashboard will function as a what-if demonstration tool, allowing users to explore simulation settings such as battery capacity, tariff parameters, and regional scenarios, and to inspect forecasts, hourly decisions, energy flows (solar, battery, and grid), and state-of-charge over representative periods. Most importantly, it will present quantified electricity cost outcomes, comparing the proposed AI-assisted policy against the baseline self-consumption strategy, thereby supporting the economic argument for forecast-informed residential energy management in a future Sarawak ToU market.  Detailed numerical results, tables, and figures will be reported in later chapters; Chapter 1 establishes only the motivation, problem, aims, and expected deliverables.
+
+
+
+
+
+
+
+
+
+
+Literature review
+Introduction
+The shift to renewables in tropical climates poses a specific engineering paradox due to the solar potential that is present in those regions, but whose intermittency poses significant challenges for stable and economical grid operation. This chapter reviews theoretical and technological foundations with which to resolve this tension in Sarawak. The review is designed to let the reader follow the logical journey of the system design. The discussion starts by studying the base mechanics behind photovoltaic conversion and then considers the stochastic nature of solar intermittency and the need for hybrid battery storage solutions. Following are sections to assess the economic conditions that are moving from mere off grid reliability to complicated grid-tied cost optimization under Time of Use tariffs. To overcome these problems, the review provides a critical analysis of modern forecasting based on a specific choice of Machine Learning algorithms that should justify the use of them over old statistical algorithms. Finally, the chapter compares the state-of-the-art control methods, from deterministic rule-based logic to advanced reinforcement learning that can be applied and indicates the research gaps that this project will try to fill by offering a Digital Twin simulation framework. Specifically, this framework simulates a grid-tied residential system across five distinct Sarawak regions, prioritizing Time-of-Use cost optimization through an import-only accounting model. Furthermore, to ensure realistic day-ahead dispatch without relying on perfect oracle weather data, the simulation introduces an explicit forecast-error model and evaluates both Random Forest and Support Vector Regression (SVR) algorithms.
+Solar Photovoltaic (PV) Systems and Intermittency
+Photovoltaic Conversion Technology
+Photovoltaic (PV) power generation relies on the photovoltaic effect, a phenomenon first discovered by Becquerel in 1839, which enables the direct conversion of sunlight into electricity (Singh, 2013). This conversion is realized via the photovoltaic cell, a semiconductor unit that converts solar light into electrical energy via a solid-state process. These conversion phenomena are mathematically modeled using an equivalent circuit that encodes the electrical characteristics of the solar cell. Figure 2.1 shows the standard Single Diode Model which shows a cell as a current source () in parallel with a diode and two intrinsic resistances: the shunt resistance () and the series resistance ().
+
+Figure 2.1: Simplified equivalent circuit of a photovoltaic cell (Singh, 2013)
+
+According to Singh (2013), the mathematical relationship between the current and voltage of a PV array is non-linear and is governed by the following characteristic equation, denoted as Equation 2.1.
+
+--- TABLE START ---
+ | Equation 2.1
+--- TABLE END ---
+
+Based on the parameters presented in Equation 2.1, the variables are defined as follows: I represents the PV array current output in Amperes (A), while V denotes the output voltage in Volts (V). The scaling of the system is determined by , the number of cells connected in series, and , the number of modules connected in parallel. The term  refers to the photocurrent, which is directly dependent on solar irradiation levels, whereas  represents the cell's reverse saturation current. The physical constants governing the equation include q, the charge of an electron, and k, Boltzmann's constant. Finally, A denotes the P-N junction ideality factor, and T signifies the cell temperature.
+As indicated by Equation 2.1, the energy produced by the system is not constant but fluctuates continuously based on site-specific environmental conditions. The photocurrent () is directly proportional to the solar radiation intensity, while the saturation current () varies with the cell temperature (Singh, 2013). Consequently, environmental changes, such as a cloud passing over the array, can cause immediate and dramatic reductions in the total output power.
+The Challenge of Stochastic Intermittency
+The inherent stochastic and intermittent nature of solar energy presents a significant challenge for electrical grid integration because photovoltaic (PV) generation fluctuates randomly across time scales ranging from seconds to seasons (Notton et al., 2018). Unlike conventional power sources, solar output is heavily dependent on variable environmental factors like cloud cover and daily cycles, making it difficult for grid operators to maintain the mandatory real-time balance between electricity production and consumption. This unpredictability forces utility managers to maintain expensive energy reserves and keep backup generators running at inefficient levels to immediately compensate for sudden drops in solar power. Consequently, this requirement for additional flexibility and specific reserves to handle unexpected ramp rates significantly increases the operational costs and technical complexity of integrating high levels of PV penetration into the standard power grid.
+
+Hybrid Solar Battery Systems as a Solution
+System Architecture and Functionality
+A hybrid renewable energy system solves the stochastic intermittency of solar power by providing a complete solution by combining the generation of solar power through photovoltaic technology with battery energy storage and utility grid connections to ensure uninterrupted electric power supplies to end users. As a result, this architecture is based on the battery energy storage system, which absorbs solar energy in high solar irradiation periods and releases electric energy when generation has dropped or demand has increased (León Gómez et al., 2023). Having a connected hybrid network for system configuration enables effective management of the power flow between direct current solar panels and battery on the one hand and alternating current utility grid on the other hand. This is a combination which not only stabilizes the voltage and frequency, on top of that makes electricity supply more efficient and reliable compared to monolithic electricity systems.
+To materialize this tactic, an architecture consists of the 4 major parts of the architecture: PV panels, battery storage unit, DC to AC inverter, and utility connection represented in Figure 2.2. In this topology, this photovoltaic PV system generates direct current electricity which goes directly into either the storage reservoir or directly into the inverter (Gabr et al., 2021). The inverter is then converted direct current from solar arrays and batteries into alternating current, applicable to home load and acts as the hub for the conversion. This energy is then fed on an AC busbar that connects to the national grid in bidirectional fashion, enabling the system to smoothly import power when there is slack in internal generation or return surplus energy to the provider of electricity.
+
+Figure 2.2: Basic topology of the grid-connected photovoltaic (Gabr et al., 2021)
+
+While the general topology outlines the strategy, the specific functional connections are detailed in the provided schematic. As illustrated in figure 2.3, energy is captured by solar panels and directed through a charge controller, which regulates the flow of electricity to the battery bank to ensure optimal charging and storage (Sharma & Singh, 2018). The inverter serves as the critical bridge, drawing power from the batteries or panels to provide electricity to the house. Furthermore, the system is integrated with the utility grid via a meter, which monitors the bidirectional flow of energy, allowing for grid-tied operation where excess power can be exported, or supplemental power can be drawn.
+
+Figure 2.3: Typical physical installation of a residential hybrid system (Sharma & Singh, 2018)
+
+Application in Sarawak: Off-Grid Reliability
+In Sarawak, rural electrification has been achieved with standalone solar power systems under the Sarawak Alternative Rural Electrification Scheme (SARES) by providing reliable power to remote villages where extending the main utility grid is economically unfeasible (Chong et al., 2020). Unlike the hybrid renewable energy system which can tap into the national utility to manage the supply and demand, these self-sustained designs have no dependence on the national grid to supply electricity. As such, although such standalone systems have already established good reliability with an interruption frequency lower than the general distribution network, they don't have the backup security of the grid, which means they are compelled to adopt strict energy quotas, such as a daily limit of 2 kWh per household, to avoid depletion of batteries and ensure long term sustainability. In contrast to these rural standalone models, this thesis focuses on grid-connected residential users in urban and suburban environments who can import power during deficits and are exposed to time-differentiated energy prices. Therefore, the primary optimization objective of this research is bill minimization and peak-import reduction under grid availability, rather than absolute standalone autonomy.
+
+Economic Drivers: From Reliability to Optimization
+The Paradigm Shifts: Grid-Tied Economic Optimization
+With the urbanization of Sarawak, adaptation of proven hybrid solar technology for grid connected residential applications is crucial. The main operational target in this scenario will not be energy sufficiency but rather economic optimization. Standalone systems such as SARES focus on continuous power supply whereas urban grid connected systems must grapple with financial constraints by avoiding expensive electricity imports during peak pricing hours. This shift requires a change from backup strategies to smart dispatch algorithms optimized to minimize costs.
+The Evolution of Pricing Mechanisms (Tariff Structures)
+The power tariff’s structure, which dictates the cost of energy consumption at different times of day, plays a key role in the economic optimization of grid-connected systems. As a model, Time-of-Use (ToU) tariffs introduce a dynamic pricing model to electricity grid-connected systems, with prices that vary at different times of day according to usage patterns and demand. When compared to the traditional flat rate tariff system, the former uses a dynamic pricing model under which the price of electricity in a power grid reflects these varying charges. Using a ToU system, the day is segmented into periods when prices are significantly higher during peak hours, as the demand for electricity is greatest, and substantially lower during off-peak hours when consumption drops (Pan et al., 2022). This dynamic mechanism generates effective price signals to encourage consumers to shift usage away from expensive periods and transforms the battery from a passive backup to an active financial instrument capable of executing energy arbitrage by storing low-cost energy and discharging it during high-cost windows.
+Local Context and the Optimization Challenge
+Within the Malaysian context, advanced pricing mechanisms can be seen by reviewing the composition of domestic tariffs to establish a Time-of-Use (ToU) scheme designed to raise energy efficiency by creating different costs. This framework, available to homes with smart meters, sharply isolates electric bills, increasing off-peak hours to cover all hours of the day on weekends and from 10:00 PM to 2:00 PM the next day on weekdays (Ramli, 2025).
+While Tenaga Nasional Berhad (TNB) attempts to impose Time-of-Use schemes on the peninsula, Sarawak Energy Berhad adopts a unique framework with its C3 tariff system currently applicable to commercial consumers. Nonetheless, this pricing scheme serves as an ongoing barometer for potential future dynamic pricing in the residential market. As illustrated in Figure 2.4, under this way, the tariff charges a premium Peak Period rate of 24.5 sen/kWh and a RM 20.00 Maximum Demand charge per kilowatt. The Off-Peak window of 13.9 sen/kWh offers a further discount on the tariff (Sarawak Energy, n.d.). Therefore, the C3 tariff structure serves strictly as policy context for this research; the simulation utilizes the peak rate of 0.245 RM/kWh and the off-peak rate of 0.139 RM/kWh to conduct a what-if residential ToU study, rather than attempting to construct a full commercial bill replica. In this scenario, an imprecise controller may accidentally discharge early and deplete the battery before peak pricing starts. As a result, this is a complex stochastic optimization problem with no easy answers and control logic must be more complex if it is not limited to simple rule-based operation to be capable of predicting future solar output and load situations with high speed forecasting so as not only to make a strategic energy dispatch allocation but also aggressively harvest the off-peak time in order to efficiently charge and discharge the battery before peak demand charges are achieved by harvesting as few times as possible.
+
+Figure 2.4: TARIFF C3 (Sarawak Energy, n.d.)
+
+Machine Learning for Solar Forecasting
+The Shift to Data-Driven Forecasting
+To transition solar power forecasting from an underlying theory of solar generation to an actual forecast driven by data-driven methods, these advanced algorithms will replace the primitive and static models, paving the way for the generation of new solutions. According to Long et al. (2014), these computational methods for analysis of real-time solar radiation are better than those that use the traditional weather-based techniques as they make use of the already established weather data, namely temperature and insolation, which are found most critical, resulting in forecasts at much lower error rates. In contrast to the previous persistent approach which merely assumes that the predicted future solar output will be equal to the current state, the data-driven techniques utilize the patterns in the training data for learning to minimize the Root Mean Square Error and serve as a more stable grid management solution. So, such algorithms as the Artificial Neural Network can produce the most accurate prediction for immediate daily forecast, confirming the effectiveness of incorporating ML in renewables planning.
+Overview of Prominent Algorithms
+Given the existing literature on computational architectures in renewable energy, to find the best prediction engine for the simulation, the proposed computational architecture needs to be reviewed. A wide number of references from published literature show that we have three specific machine learning algorithms that demonstrate better prediction of the non-linear stochastic nature of solar irradiance. The successful approaches are Artificial Neural Networks (ANN), Support Vector Regression (SVR), and Random Forest Regressors (RF) for a particular application in tropical weather. The technical analysis of these algorithms, based on their applicability and suitability, is followed by a section of this paper where it will discuss their suitability for the specific constraints of the Sarawak environment. Rather than selecting a single algorithm purely based on this literature, the implemented pipeline treats both Random Forest and Support Vector Regression as comparable supervised regressors. Both models are trained using the exact same seven meteorological input features, enabling a direct empirical comparison of their performance rather than relying on a predetermined conclusion.
+Artificial Neural Networks (ANN)
+For accurate prediction of solar radiation, Artificial Neural Networks, and the multilayer perceptron model using feed-forward back-propagation as its underlying theory, can be an invaluable tool to model the intricate, non-linear relationships (Notton et al., 2019). As evident from Figure 2.5, the core architecture has been constructed in parallel such that the input layer receives meteorological factors, the hidden layer processes the information with synaptic weights, and the output layer supplies the predicted solar irradiation figures. Each neuron operates in this system by computing a weighted sum of inputs while applying the corresponding activation function (sigmoid for the hidden layer and linear for the output layer) to find the level of signal passing to the next level. To find the best tradeoff between its performance and computational cost in the optimization of accuracy, the network design often is composed of having only one hidden layer and it takes advantage of training algorithms such as Levenberg-Marquardt in order to constantly modify the connection weights to obtain the lowest prediction error.
+
+Figure 2.5: Architecture of an artificial neuron and a multi-layered neural network (Notton et al., 2019)
+
+Support Vector Regression (SVR)
+Support Vector Regression further extends the classification prowess of Support Vector Machines to the regression domain, providing a strong framework for solar power forecasting in nonlinear weather scenarios utilizing the kernel trick (Abuella & Chowdhury, 2017). Unlike traditional regression methods that minimize the error between the predicted and actual values for all data points, in SVR there is a designated insensitive region around the regression function where errors falling within this region are ignored if they fall within a defined threshold . As depicted in Figure 2.6, this architecture constructs a boundary margin that envelops the regression line; only data points falling outside this "tube" serve as the input to the cost function, which is minimized by balancing the model's complexity against these deviations. As a result of mapping input vectors into a higher dimensional feature space, SVR converts nonlinear relationships into linear ones, thereby providing a global and unique solution to overcome overfitting problems faced in commonly used neural networks.
+
+Figure 2.6: The Boundary margin and loss setting for a linear SVR (Abuella & Chowdhury, 2017)
+
+Random Forest Regressor (RFR)
+Random Forest Regression is built on the robust ensemble of learning architecture of Bootstrap Aggregating, which allows performance to be increased with more decision trees built in the training stage (Babu et al., 2025). The model achieves this as shown in Figure 2.7 by building multiple bootstrapped subsets of the original dataset and training a separate decision tree on each subset at the same time rather than through sequential training. In this structure each tree splits the data independently by optimizing the mean square error to minimize variance and capture complex data patterns. A final forecast output is obtained from the average of all individual predictions, thus effectively reducing the overfitting risk often associated with individual tree models, as well as ensuring high accuracy for solar generation and demand forecasting.
+
+Figure 2.7: Architecture of random forest regression model (Babu et al., 2025)
+
+Comparative Analysis
+To evaluate the predictive performance of chosen Machine Learning algorithms there must be a range of standardized statistical metrics. The indicators measure the difference between predicted solar generation and actual observed data, providing a multi-dimensional estimate of model accuracy, reliability and distributions of error. In the spirit of a standard literature review of renewable energy predictions, this research employs 4 main evaluation measures-Root Mean Squared Error, Mean Absolute Error, Mean Absolute Scaled Error, and Coefficient of Determination.
+Root Mean Squared Error (RMSE)
+Root Mean Squared Error is a common metric, used for measurement of the standard deviation of the prediction errors (Ledmaoui et al., 2023). It is especially important for solar forecasting; it squares the difference between the predicted value () and actual value (y) before averaging, thus imposing a greater penalty on high errors. The rule allows RMSE to be sensitive to outliers, so the model does not produce extreme operational failures in a highly volatile weather pattern. It is defined mathematically by Equation 2.2 (Ledmaoui et al., 2023).
+
+--- TABLE START ---
+ | Equation 2.2
+--- TABLE END ---
+
+
+In a comparative study by Ledmaoui et al. (2023), this metric quantifies stability of different algorithms. They found that the Artificial Neural Network (ANN) achieved the lowest error (RMSE = 2.6e-08), demonstrating superior stability. In the same study, the Random Forest model with an RMSE of 168.87 outperformed the Support Vector Regression (SVR) model which had a higher error of 179.094, demonstrating that tree-based ensembles are comparatively more robust to forecast deviations than vector regression.
+Mean Absolute Error (MAE)
+The Mean Absolute Error summarizes the average magnitude of errors in a set of predictions without direction (Ledmaoui et al., 2023). The MAE also does not weigh large errors more heavily than RMSE, making it a more straightforward average error measure for daily operations. It is the mean of the absolute differences between the model prediction and the target value as reported by Equation 2.3 (Ledmaoui et al., 2023).
+
+--- TABLE START ---
+ | Equation 2.3
+--- TABLE END ---
+
+With this measure, Ledmaoui et al. (2023) identified different performance levels in standard algorithms. Based on the analysis they conducted, while ANN reduced the absolute error size to such a low degree as 0.00013, for Random Forest it held a more competitive operation interval with an MAE of 9.17. This is significantly more accurate than the Decision Tree model which obtained an MAE of 9.93, indicating that the ensemble nature of Random Forest can effectively reduce the individual error that arises from a single decision tree.
+Mean Absolute Scaled Error (MASE)
+The Mean Absolute Scaled Error is a statistical metric used to evaluate the accuracy of a forecasting model relative to a naive baseline (Ledmaoui et al., 2023). It measures the mean absolute error of the forecasts divided by the mean absolute error of a naive forecast, which typically projects the historical average or the persistence of the previous value. A value lower than one indicates that the machine learning model outperforms the simple baseline method, implying higher predictive intelligence. It is expressed by Equation 2.4 (Ledmaoui et al., 2023).
+
+--- TABLE START ---
+ | Equation 2.4
+--- TABLE END ---
+
+In the evaluation performed by Ledmaoui et al. (2023), the MASE metric confirmed the predictive superiority of advanced ML models over naive baselines. The study reported that the ANN model achieved a MASE of 0.29, indicating highly intelligent forecasting behavior. The Random Forest model also demonstrated strong predictive capability with a MASE of 0.449, whereas the Generalized Additive Model (GAM) performed significantly worse with a MASE of 0.78, approaching the threshold of the naive baseline.
+Coefficient of Determination 
+According to Ledmaoui et al. (2023), the Coefficient of Determination, denoted as R^2, represents the proportion of the variance in the dependent variable that is predictable from the independent variables. It serves as a measure of the goodness of fitness, indicating how well the model replicates the observed outcomes. An  value of 1.0 implies a perfect fit where the model explains all variability in the solar generation data. As defined in Equation 2.5,  represents the predicted value while  represents the mean value of the observed data (Ledmaoui et al., 2023).
+
+--- TABLE START ---
+ | Equation 2.5
+--- TABLE END ---
+
+This metric served as the primary indicator of model fit in the research by Ledmaoui et al. (2023). Their comparative data showed that ANN achieved a near perfect fit with an  of 0.99. Among the classical machine learning candidates, Random Forest achieved an  of 0.525, which explicitly outperformed Support Vector Regression at 0.496 and Decision Trees at 0.479. These quantitative findings justify the selection of Random Forest as a balanced alternative that offers better explanatory power than SVR without the computational complexity associated with Deep Learning networks.
+Justification for Algorithmic Selection
+Table 2.1: Performance Comparison of Machine Learning Algorithms (Background literature from Ledmaoui et al., 2023)
+
+--- TABLE START ---
+Algorithm | RMSE (Error Stability) | MAE (Average Error) | MASE (Vs. Baseline) | R2 (Accuracy)
+Artificial Neural Network (ANN) | 2.60E-08 | 0.00013 | 0.29 | 0.99
+Random Forest Regressor (RFR) | 168.87 | 9.17 | 0.449 | 0.525
+Support Vector Regression (SVR) | 179.094 | 8.825 | 0.427 | 0.496
+--- TABLE END ---
+
+
+The Random Forest Regressor model and Support Vector Regression (SVR) were chosen for this project in a manner that strikes a good balance between predictive correctness and the need for an operation to be transparent and computationally efficient. As shown in Table 2.1 (which serves as useful background context rather than a final algorithmic conclusion), Ledmaoui et al. (2023) claim that although Artificial Neural Networks provide superior theoretical precision, their implementation in residential energy management systems is frequently hampered by their black box decision process and enormous computational requirements. Conversely, in their specific study, the Random Forest model had a higher predictive output, a coefficient of determination of 0.525, which compared to other regression methods, such as Support Vector Regression or simple Decision Trees, was statistically significantly better. In addition to raw metrics, Random Forest provides its interpretability key benefit when feature importance is analyzed, whereby the meteorological features could be checked as the main predictors of power predictions. 
+This level of transparency is a prerequisite to assess the safety and robustness of the control logic in a simulated home energy environment. However, because the literature's target variable differs from this study's physics-derived AC PV power, this project does not select a single "winner" based solely on prior research. Instead, both Random Forest and SVR are implemented because they offer high transparency and seamlessly support the same controller interface. The final algorithmic performance is treated as an empirical question and will be rigorously evaluated through a per-region comparison, with detailed results discussed in the subsequent chapters.
+
+Battery Optimization Strategies
+The Need for Intelligent Control
+While the forecasting module provides the necessary foresight into future generations, the economic efficacy of the system ultimately depends on the decision logic that governs the battery's charge and discharge cycles. In a Time-of-Use (TOU) tariff environment, the primary operational objective shifts from simple energy shifting to strict Cost Minimization. According to Mulleriyawage and Shen (2020), this problem is formulated by minimizing the annual electricity cost () through the optimization of power imports and exports. However, following the no feed-in compensation assumption used in this simulation, export revenue is strictly set to zero. Thus, the economic objective reduces to minimizing only the imported energy billed under the ToU rate schedule, using the following objective function:
+
+--- TABLE START ---
+ | Equation 2.6
+--- TABLE END ---
+
+
+In this equation 2.6, the objective function  represents the annual electricity cost (Mulleriyawage & Shen, 2020). The variable  denotes the power exchanged with the grid at time step , where the  function ensures only imported power is calculated, while  represents the TOU tariff rate which fluctuates according to peak and off-peak periods. Unlike generic papers, this formulation deliberately excludes the second term accounting for revenue generated by exporting power to the grid at a fixed feed-in-tariff. The summation symbol indicates that the algorithm must evaluate and accumulate these costs over the total hours () in the year.
+Therefore, to minimize , the controller must intelligently schedule battery discharging specifically during intervals when  is at its maximum, effectively reducing grid imports during expensive peak periods. To achieve this efficiently, the machine learning module is utilized exclusively to set the day-ahead operational mode (e.g., Conservation Mode), while the actual safety-critical hourly dispatch remains governed by deterministic rule-based logic. This optimization is strictly subject to the Power Balance Constraint as shown in equation 2.7 (Mulleriyawage & Shen, 2020):
+
+--- TABLE START ---
+ | Equation 2.7
+--- TABLE END ---
+
+
+This ensures that the physical demand of the household () is always met through a combination of solar (), battery (), and grid resources () (Mulleriyawage & Shen, 2020). Consequently, rudimentary timer-based controls are insufficient for this task because they lack the predictive flexibility required to align grid imports and battery usage exclusively with the most cost-effective tariff windows.
+Overview of Control Paradigms
+To achieve this optimization, two primary control paradigms are prevalent in literature:
+Reinforcement Learning (RL)
+Reinforcement Learning refers to a data-driven optimization approach: an intelligent agent learns to make decisions through continuous interaction with a dynamic environment (Liu & Gou, 2025). As seen here in the Figure 2.8 Reinforcement Learning schematic, the architecture becomes a closed loop involving state observation, action execution, and reward calculation. In the specific context of battery optimization, the agent watches the current state of a system (), typically consisting of multidimensional variables such as real time photovoltaic generation, household load demand, and battery’s State of Charge. To do so, the agent creates a controlled action (specific action space) to have the battery charge, discharge or remain idle for some period. After completing this action, the environment gives feedback in terms of a numerical reward (), reflecting how well the decision was executed in decreasing its dependence on the grid or costs. During successive iteration, the agent constantly updates its policy network to maximize the sum reward, thereby learning the best (and most efficient) energy dispatch control strategy without relying on a fixed, pre-defined mathematical model of the physics of the building.
+
+Figure 2.8: Architecture of RL (Liu & Gou, 2025)
+
+Rule Based Control (RBC)
+Rule Based Control serves as a deterministic optimization strategy in which predetermined logical sequences guide control of energy flow (Liu & Gou, 2025). Architecture follows a hierarchical decision-making structure, as illustrated with Rule Based Control logic flowchart in Figure 2.9. It starts with an Input layer, where real-time system variables such as photovoltaic generation and load demand are ingested. This data then flows through to a central conditional node, represented by the diamond symbol, which compares the current state with specific thresholds or Boolean conditions. Based on this appraisal, the logic splits into separate paths where certain Calculations must be performed to determine the exact power requirements, for example, how much surplus solar energy there is to be had. Following this quantitative step, a Process phase is taken. Then the control command is formalized for finalization, and the actions it carries out, such as charging the battery or transferring power to the grid, happen. That sequential "If Then" system ensures that operation of the battery is strictly aligned with established priority rules at each step (without necessity for further learning).
+
+Figure 2.9: Architecture of RBC (Liu & Gou, 2025)
+
+Comparative Analysis
+Selecting the appropriate control architecture requires a holistic evaluation that moves beyond theoretical potential to examine empirical operational performance. To determine the optimal strategy for a residential energy management system, it is essential to benchmark the candidates against tangible engineering constraints including energy efficiency, grid stability, and computational transparency. The following analysis synthesizes experimental data from Liu and Gou (2025), who conducted a rigorous comparative study between a stochastic Reinforcement Learning model and a deterministic Rule Based Controller under identical environmental conditions. This evaluation separates the performance outcomes into quantitative economic metrics and qualitative operational assessments to fully justify the algorithmic selection.
+Quantitative Performance Metrics
+To rigorously evaluate the economic efficiency of the control strategies, Liu and Gou (2025) conducted a comparative study using real world residential load data. The primary metric for assessment was the Energy Self Sufficiency Rate (SSR), which measures the percentage of household demand met by onsite solar and storage. The empirical results demonstrated that the Rule Based Control strategy achieved a superior Self Sufficiency Rate of 94%, whereas the Reinforcement Learning model using Proximal Policy Optimization reached a lower peak of 86%. This performance gap highlights that the deterministic logic of the Rule Based Control is more effective at maximizing the utilization of stored energy. Furthermore, regarding grid dependency, the study highlighted that in specific test scenarios (Case 1), the Rule Based Control successfully eliminated grid reliance entirely by reducing grid imports to 0.00 kWh. In contrast, the Reinforcement Learning agent still required 4.21 kWh of imported electricity to meet the same load demand, indicating a lower efficiency in mitigating costs during critical periods.
+Qualitative Operational Metrics
+And, beyond sheer numerical efficiency, the control strategy stability operationally is crucial for battery health as well as grid compliance (Liu and Gou, 2025). The study found a significant qualitative difference in the power dispatch profiles produced for the two models. It is in this case that the Reinforcement Learning model has clearly observed distinct sawtooth variations between charging and discharging profiles, due to the stochastic randomness inherent in its strategy exploration process. These abrupt and unpredictable switching processes can cause fluctuations in local grid voltages, leading to fast physical deterioration of battery cells. In contrast, the Rule Based Control maintained a smoother and more continuous operation profile, ensuring that the battery discharge frequency is consistent with the peak loads without irrelevant perturbations. In addition, when it comes to system clarity, Reinforcement Learning performs as a black box model with unfathomable decision logic for the system operator. Alternatively, Rule Based Control provides an interpretable and logical paradigm which enables engineers to check the nature of their decision on when to dispatch equipment and verify that compliance with safety constraints is rigorously maintained.
+Justification for Control Strategy Selection
+Table 2.2: Comparative Analysis of Control Strategies (Liu & Gou, 2025)
+
+--- TABLE START ---
+Metric Category | Specific Metric | Rule-Based Control (RBC) | Reinforcement Learning (RL)
+Quantitative Efficiency | Self-Sufficiency Rate (SSR) | 94% | 86%
+ | Grid Import (Case Study 1) | 0.00 kWh | 4.21 kWh
+Qualitative Stability | Power Dispatch Profile | Smooth & Continuous | Sawtooth Fluctuations
+ | System Interpretability | Transparent (White Box) | Opaque (Black Box)
+--- TABLE END ---
+
+
+As seen in Table 2.2, the comparative evidence, the Rule Based Control approach is chosen as the best architecture for the project. Three major engineering considerations: economic efficiency, operational safety, and algorithmic transparency guide this decision. First, on a quantitative level, the Rule Based approach performed comparatively better than the Reinforcement Learning model in respect to economic performance, with a Self Sufficiency Rate of 94% for the Rule Based model and 86% for the Reinforcement Learning model in the reference study (Liu and Gou, 2025). Because the main goal of this project is to reduce costs by optimizing on-site solar usage, Rule Based logic reduces grid imports in specific test scenarios (down to 0.00 kWh) and hence it is the more cost-effective option. Second, in terms of operational safety, Reinforcement Learning also has some risks due to its stochastic nature. Such "sawtooth fluctuations" observed in the charging profiles of the Learning agent may endanger battery health and lead to increased degradation due to rapid micro cycling. On the other hand, the Rule Based controller allows for smooth, continuous power dispatch needed to allow the storage hardware to survive and the grid to remain stable. Lastly, the transparency is the reason that the selection makes sense. In a residential context, safety requirements must be enforced with great precision. Deterministic “If Then” logic of the Rule Based system makes sure that all control decisions are explainable and verifiable, thus preventing the opacity issue (the problem of black box in Reinforcement Learning). Thus, Rule Based Control ensures a good compromise between high efficiency, strong safety, and easy decipherability, which is required for a reliable Home Energy Management System.
+
+Comparative Review of Existing Systems
+Overview of Current Approaches
+To position the Sarawak specific simulation in the broader academic context, it is important to consider how recent studies have addressed the challenges of solar forecasting, battery optimization, and system sizing. The current literature tends to isolate these problems, focusing either on off grid reliability, heavy computational sizing, or complex deep learning models. However, looking at four notable works presented in the last few years, it is clear the research gaps in this work we propose to address.
+System A: Off Grid Reliability vs. Grid Tied Economics
+In the autonomous energy systems domain, Babu et al. (2025) provided a comprehensive framework titled "Forecasting and optimization of a residential off-grid solar photovoltaic-battery energy storage system." They specialize in the context of Bangladesh, where the aim is to realize full energy independence from the national utility grid. To do this, they have proposed a data-driven architectural framework (Figure 2.10), providing a pathway to a sequential pipeline starting from data acquisition to machine learning-based forecasting using algorithms (Random Forest and Gradient Boosting), and finally system sizing optimization. Their basic operational goal is reliability, specifically ensuring that the solar PV and battery capacities are sufficiently large to sustain load continuity without any external grid support.
+
+Figure 2.10: Methodology of machine learning modelling (Babu et al., 2025)
+
+However, a critical divergence exists between their approach and the requirements of an urban residential setting in Sarawak. The framework proposed by Babu et al. (2025) operates under a paradigm of Energy Constraints, where the system must be oversized to guarantee survival during low generation periods. For instance, their optimization logic resulted in scaling the photovoltaic capacity from 11 kW to 30 kW and deploying a massive 120 kWh battery to ensure autonomy. This approach effectively treats the battery as a static backup reservoir rather than an active financial asset.
+In contrast, the proposed Sarawak simulation operates under a paradigm of Financial Constraints defined by the Time of Use Tariff C3 structure. Unlike the off-grid model which ignores electricity prices to focus on availability, this project assumes the grid is always available but financially penalizing during peak hours. Therefore, the research gap identified here is the transition from Passive Reliability Sizing to Active Economic Dispatch. While Babu et al. utilize Random Forest to determine how big the system must be to avoid blackout, this project utilizes Random Forest to determine when a fixed size system should discharge to minimize costs. This distinction highlights the necessity for a control logic that prioritizes price arbitrage over simple state of charge preservation, addressing the specific economic needs of grid tied prosumers that are not covered by off grid reliability models. Thus, while similarly employing tree-based regression for forecasting, the present work applies it across five distinct Sarawak weather trajectories to optimize daily dispatch timing under ToU tariffs, rather than calculating kW/kWh hardware expansion to maintain standalone autonomy.
+System B: Computational Efficiency in Control
+Addressing the critical need for real time implementation in embedded systems, Becchi et al. (2024) proposed a specialized framework titled "A Computationally Efficient Rule-Based Scheduling Algorithm for Battery Energy Storage Systems." Their research specifically targets computational bottlenecks inherent in traditional optimization methods like Linear Programming (LP). To solve this, they introduced a hierarchical control architecture where a central entity provides market signals to a local Battery Management System (BMS). The core of their innovation is a three-step deterministic algorithm, as illustrated in the flowcharts of their methodology (Figures 2.11, 2.12, and 2.13), which sequentially calculates the energy availability, determines the target energy exchange, and finally schedules the specific battery charging or discharging intervals. This "Rule Based" approach was proven to be approximately 30 times faster than equivalent linear programming solvers while maintaining similar economic performance.
+
+Figure 2.11: Flowchart of the first step of the rule-based algorithm (Becchi et al., 2024)
+
+Figure 2.12: Flowchart of the second step of the rule-based algorithm (Becchi et al., 2024)
+
+Figure 2.13: Flowchart of the third step of the rule-based algorithm (Becchi et al., 2024
+
+Yet a profound limitation in their study is a major research gap regarding its application. This framework by Becchi et al. (2024) is predicated specifically on the assumption of “perfect predictions” for photovoltaic generation and household load demand. Given a known future, their system can be built to optimize the schedule, overcoming the issue of forecast uncertainty. There is no such perfect foresight in a practical residential space. In response to this gap the suggested project expands the efficiency principles of Becchi’s rule-based logic and incorporates a dedicated AI Forecasting Module. However, in a digital twin simulation where tomorrow's weather columns are read from the realized historical record, a trained AI model could inadvertently behave like an oracle with perfect foresight. 
+In contrast to System B, which assumes that the inputs of the system are static and correct, our proposed "Digital Twin" simulation generates those inputs actively by introducing a seeded stochastic forecast-error model to the day-ahead weather features. Before the Random Forest or Support Vector Regression (SVR) algorithms generate their predictions, a $\sigma$-sweep injects controlled noise to simulate realistic day-ahead forecast uncertainty. As an output, the system transforms from a dry scheduling tool to a practical operational controller that can account for the stochastic nature of the Sarawak climate. This project makes sure that such speed-based decision logic is based on realistic, probabilistic weather data, rather than idealized assumptions, by leveraging the computational ease of rule-based control and evaluating how these predictive errors impact downstream cost savings, successfully separating near-perfect theoretical behaviour from noisy day-ahead reality.
+System C: Capacity Planning in the Malaysian Context
+In this research context of location, Hossain et al. (2023) introduced a comprehensive structure called “A Grid-Connected Optimal Hybrid PV-BES System Sizing for Malaysian Commercial Buildings.” We consider them very relevant to our research as their study specifically focuses on the climate and regulatory frameworks of Malaysia, particularly the solar irradiance profiles and tariffs specific to the region. To meet their goals, an optimization architecture led by Particle Swarm Optimization (PSO) was developed. Their framework, described in a flowchart in Figure 2.14, is basically a planning loop, which adjusts the size of the Photovoltaic array and Battery Energy Storage system in a systematic way, with a total net present cost that is minimized over 20 years.
+
+Figure 2.14: optimization process flowchart (Hossain et al., 2023)
+
+However, a distinct divergence exists between their commercial sizing approach and the residential operational focus of this project. The system proposed by Hossain et al. (2023) is designed as a Capacity Planning Tool for commercial entities operating under the Tariff C1 structure. Its primary output is a recommendation for hardware purchasing, specifically determining the optimal number of solar panels and battery units to install. It does not utilize predictive AI to manage the system day to day but relies on historical data to simulate long term performance.
+This project addresses the specific research gap for the Residential Sector in Sarawak, which operates under the different Time of Use Tariff C3. Unlike System C, which asks, "How big should the battery be?", this project asks, "How should we use the existing battery today?" By assuming a fixed hardware capacity, the proposed "Digital Twin" simulation focuses entirely on the Operational Intelligence required to maximize daily arbitrage. This shift from static capacity planning to dynamic, forecast driven control ensures that residential prosumers can actively minimize their monthly bills using the hardware they already own, a capability not covered by commercial sizing algorithms. Furthermore, by executing this dynamic residential simulation across five distinct meteorological regions in Sarawak, this research provides a multi-region operational validation that specifically contrasts with their localized commercial scope.
+System D: Complexity vs. Interpretability in AI
+In the frontier area of new AI applications for renewable energy, Annapareddy (2024) investigated a high-stage framework entitled "Harnessing AI Neural Networks and Generative AI for Optimized Solar Energy Production and Residential Battery Storage Management". In this study, we also investigate the promise of a state-of-the-art AI model to transform energy grid management systems. In particular, the study presents an all-encompassing pyramid-based methodology that consists of a range of powerful AI networks, including a variety of CNNs, LSTMs, and GANs. Using these Deep Learning models, the conceptual diagrams of the study, e.g., Figure 2.15 and Figure 2.16 illustrate that the framework aggregates inputs, together predicting household weather, solar generation, and electricity demand, adding these inputs in an optimization layer that adjusts battery operation schedules. The main advantage of this "Generative AI" method is that it conceptually constructs very complicated, nonlinear dependencies for modelling and creates realistic synthetic data scenarios for solid training.
+
+Figure 2.15: Artificial Intelligence for Management of Variable in solar Energy Systems (Annapareddy, 2024)
+
+Figure 2.16: Artificial Neural Network Models for Energy and Reliability Predict (Annapareddy, 2024)
+
+However, there is a clear gap between this high complexity idea and the practical need of a deployable residential Home Energy Management System (HEMS). This model argues deep, multi layered models using complex neural networks that are "Black Box" architectures by nature (Annapareddy, 2024). And yet, while robust, these models are not transparent; the internal decision-making logic is buried among millions of abstract weight parameters, making it hard for operators to know why they chose some control action. Moreover, the computational resources required to train and run Generative Adversarial Networks (GANs) are substantial, often necessitating cloud-based infrastructure rather than running locally on a simple residential controller. This project provides a solution to the above situation by preferring Algorithmic Interpretability and Computational Efficiency rather than pure conceptual complexity.
+In this study, the Random Forest Regressor and Support Vector Regression (SVR) are chosen over black box Deep Learning or Generative models. This choice is tactical, since Random Forest has good prediction accuracy, and at the same time key transparency is maintained by feature importance metrics, and SVR similarly offers a clear, margin-based prediction mechanism, and so the system’s logic can be audited and understood. By integrating this interpretable forecasting with the deterministic Rule Based Controller, we can be certain that the "Digital Twin" simulation is not only intelligent but also safe, verifiable, and light to allow for practical implementation in a conventional residential setting, without the extensive overhead of Generative AI. Ultimately, the implemented system keeps interpretability prioritized by using classical regressors (Random Forest and SVR) rather than deep generative stacks, and keeps the operational dispatch explainable via explicit rules, though deep learning approaches remain an avenue for future work.
+Summary of Comparative Features
+To clearly visualize the distinction between these existing systems and the proposed project, Table 2.3 benchmarks them against key engineering criteria including the operational domain (specifically highlighting multi-region applications), the specific forecasters compared (such as RF and SVR), forecast uncertainty treatment, and the adopted cost models (such as import-only costing).
+
+Table 2.3: Comparative Review of Existing Solar Battery Management Systems
+
+--- TABLE START ---
+Reference Study | Operational Context & Regions | Forecasters Compared | Forecast Uncertainty Treatment | Cost Model Focus | Limitation (Research Gap)
+Babu et al. (2025) | Off-Grid Residential (Single-Site Bangladesh) | RF, GBM | Abstracted via hardware oversizing | None (Autonomy focused) | Focuses on static hardware sizing for autonomy, ignoring the financial arbitrage opportunities of grid-tied Time-of-Use tariffs.
+Becchi et al. (2024) | Grid-Tied General (Single-Site) | None (Assumes Oracle) | Assumes 100% perfect predictions | Import/Export Arbitrage | Relies on "perfect prediction" assumptions; lacks a stochastic forecast-error model to handle realistic day-ahead weather uncertainty.
+Hossain et al. (2023) | Grid-Tied Commercial (Single-Site Malaysia) | N/A (Historical Data) | N/A (Retrospective planning) | Tariff C1 (Hardware Sizing) | Designed as a one-time planning tool for purchasing hardware, not a real-time operational controller for daily energy management across multiple regions.
+Annapareddy (2024) | Grid-Tied General (Single-Site) | Deep Models (GANs, CNN, LSTM) | Implicitly handled via opaque generative models | Theoretical Efficiency | High computational overhead and "Black Box" opacity make it difficult to verify and unsafe for simple residential embedded controllers.
+Proposed Project | Grid-Tied Residential (5 Sarawak Regions) | RF vs. SVR | Stochastic noise injection + $\sigma$-sweep | Import-only ToU (Tariff C3) | Fills the gap by integrating interpretable AI forecasters with an explicit forecast-error model and active, import-only dispatch logic evaluated across five regions.
+--- TABLE END ---
+
+
+Summary and Research Gap
+A holistic overview of the state of the art demonstrates that solar forecasting, battery optimization, and system sizing are often examined like standalone engineering exercises. In the same vein, the literature shows that there are good solutions within some of the subdomains; however, there is an issue with the integrated cohesion needed for practical use in a residential project in Sarawak. Studies like Babu et al. (2025) concentrate on off grid reliability and static hardware sizing and concentrate on energy autonomy rather than the dynamic financial arbitrage in grid-tied systems. Similarly, research by Hossain et al. (2023) offers useful recommendations for the Malaysian context but is confined to capacity planning for the commercial sector, including little explanation for managing the day-to-day operational control of today's residential hardware. Theoretically, the frameworks put forward by Annapareddy (2024) are not only the basis for Generative AI but also introduce computational complexity and opacity into the task that makes them ill-suited for transparent and cheap embedded controllers. On the other hand, efficient scheduling algorithms described in Becchi et al. (2024) can ensure speed at real-time implementation, but do not consider the stochastic characteristic of tropical weather and depend upon idealized perfect predictions that do not yet exist.
+This suggests a clear research gap for an integrated operational framework calibrated for grid tied residential prosumers in Sarawak. The current literature does not cover the interaction between interpretable machine learning, deterministic safety logic, and Time of Use tariff optimization within a tropical microclimate enough. No systems exist that provide the predictive flexibility required to govern this high frequency intermittency, while delivering the computational lightness for household use. This paper aims to address this shortcoming, based on the proposed Digital Twin simulation approach, which combines Random Forest and Support Vector Regression (SVR) forecasting with a structured Rule Based Controller across five distinct Sarawak regions. To ensure realistic control without relying on oracle future weather, this simulation implements an explicit stochastic forecast-error model and sensitivity analysis. Shifting from static sizing to active daily dispatch, this research presents one avenue to illustrate how intelligent software can tap into the economic power of residential battery systems when used within the unique bounds of the Sarawak Energy Tariff C3 structure under an import-only economic accounting approach. Chapter 3 details the reproducible pipeline, system architecture, data processing, models, and dual evaluation metrics corresponding to this literature positioning. Table 2.4 summarizes the key methodologies analyzed in this chapter, contrasting their specific limitations against the integrated approach proposed in this research.
+Table 2.4: Comparative Summary of Existing Approaches vs. Proposed Research Work
+
+--- TABLE START ---
+Category | Author / Reference | Methodology Used | Key Limitation / Research Gap | How Proposed Work Outperforms
+Off-Grid Reliability | Babu et al. (2025) | Random Forest + System Sizing for standalone homes. | Focus on Survival: Oversizes hardware to prevent blackouts. Ignores economic arbitrage opportunities (cost minimization) because there is no grid connection. | Economic Focus: Optimization targets Cost Minimization under ToU tariffs, utilizing grid connection for backup rather than oversizing expensive batteries.
+Grid-Tied Efficiency | Becchi et al. (2024) | Rule-Based Scheduling for fast computation. | Unrealistic Assumption: Relies on "perfect foresight" (knowing exactly what tomorrow's weather will be), which fails in real-world stochastic climates. | Realistic Forecasting: Introduces a seeded stochastic forecast-error layer and $\sigma$-sweep sensitivity analysis to simulate realistic day-ahead forecast uncertainty, separating near-perfect theoretical limits from noisy operational reality.
+Capacity Planning | Hossain et al. (2023) | Particle Swarm Optimization (PSO) for commercial buildings. | Strategic vs. Operational: Designed to tell you what to buy (sizing), not how to use it daily. Focuses on commercial Tariff C1, not residential needs. | Operational Intelligence: Focuses on the Daily Dispatch of existing hardware. Specifically calculated for the Residential Tariff C3 structure.
+Advanced AI Control | Annapareddy (2024) | Generative AI & Deep Learning (GANs/LSTMs). | "Black Box" Complexity: Highly complex and computationally expensive. Lacks the transparency/safety required for simple home energy controllers. | Transparent Logic: Uses Interpretable ML (Random Forest) combined with deterministic safety rules, ensuring the system is verifiable and lightweight for deployment.
+PROPOSED WORK | This Research | Multi-Region Hybrid AI-Rule Based Digital Twin (RF vs. SVR + Forecast Error Model) | (N/A) | The Integrated Solution: Combines interpretable regressors (RF and SVR) with rule-based safety logic across five Sarawak regions, evaluating import-only ToU savings under explicitly modeled forecast uncertainty (detailed in Chapter 3).
+--- TABLE END ---
+
+
+
+
+
+
+methodology
+Introduction
+This chapter describes the technical methodology used to build and evaluate an AI-assisted battery control policy for a grid-tied residential PV and storage model, implemented as a deterministic hourly simulation in Python. The study adopts a comparative experimental design: a reactive baseline controller is compared against a forecast-informed smart controller under identical per-hour synthetic load, identical battery physics, and identical time-of-use (ToU) tariff parameters, while photovoltaic generation varies with historical weather reconstructed separately for five Sarawak regions (Kuching, Miri, Bintulu, Kapit, Sri Aman).
+While the overall project management may follow an Agile Software Development Life Cycle (SDLC) to structure development milestones, the scientific method applied here is a quantitative simulation with fixed seeds and a single machine-readable configuration (experiment_config.json). This ensures that every numerical assumption—coordinates, model grids, battery size, tariff rates, controller thresholds, forecast-error models, and sweep ranges—is strictly auditable and reproducible.
+The central hypothesis is that predictive lookahead from an AI forecaster enables a day-ahead operating mode ("Conservation Mode") that reduces grid electricity costs compared with myopic self-consumption, without altering the underlying electrochemical hardware. This methodology extends beyond a single-site prototype to test whether conclusions are regionally stable across Sarawak, and whether performance is dependent on choosing a Random Forest versus a Support Vector Regression (SVR with RBF kernel) forecasting model.
+
+General Research Framework
+System Architecture
+The system functions as a "Digital Twin" and is implemented via two distinct architectural layers:
+
+Figure 3.1: System Architecture Block Diagram
+
+Offline Preparation and Learning
+This layer handles data ingestion, cleaning, and model training. Multi-site hourly weather data is ingested and processed, and AC PV power (Target_Power_kW) is synthesized via pvlib using the specific latitude and longitude of each site. The layer then trains and selects two alternative regressors per region (Random Forest and a StandardScaler + SVR pipeline). These algorithms map a seven-dimensional weather and calendar feature vector to hourly PV power.
+Online Simulation
+This layer replays the full timeline hour-by-hour using a shared Battery state-space model (core_battery_model.py). The baseline policy reacts to the instantaneous net load without foresight. The smart policy (phase4_smart_optimizer.py) queries the trained model each midnight for a 24-hour feature window. It compares the predicted daily PV energy to a configurable threshold () and toggles a Conservation_Mode_Active flag for that day. On conservation days, off-peak discharge power is restricted to hold charge for the impending peak window, restoring full discharge capabilities once peak rates begin.
+Hardware and Economic Constants
+The reference configuration utilizes a nominal 5 kWp DC nameplate in the pvlib system definition (surface tilt 5°, azimuth 180°, linear temperature coefficient -0.004 / °C). The battery is configured with 10 kWh of usable energy, a 5 kW AC-limited charge/discharge cap, a minimum State of Charge (SoC) of 0.15, and a 0.95 round-trip efficiency (implemented as  per direction). Under the configured Sarawak ToU tariff, peak hours are 07:00 to 22:00 at 0.245 RM/kWh, with off-peak hours at 0.139 RM/kWh.
+Research Workflow
+The technical execution is orchestrated through a sequence of modular Python scripts:
+
+Figure 3.2: Research Workflow Flowchart
+
+Phase 1 (Data Split and Cleaning)
+Handled by phase1_split_multi_region.py. Rows from the raw dataset are assigned to regions if  compared to the configuration file. Data is resampled to a strict 1-hour grid, localized to Asia/Kuching, gap-filled (limit 3) via interpolation and forward/backward filling, and radiative values are clipped to prevent non-physical negative numbers.
+Phase 1b (Physics Synthesis)
+Handled by phase1b_physics_synthesis.py. The pvlib ModelChain synthesizes the Target_Power_kW for each region based on the unified 5 kWp system definition.
+Phase 2 (Baseline Simulation)
+Handled by phase2_baseline_sim.py. A deterministic synthetic residential load is generated. The reactive battery logic attempts to cover the net demand at every hour, and grid imports and hourly costs are accumulated.
+Phase 3 (Forecaster Training)
+Handled by phase3_ai_training.py. Both Random Forest and SVR models are trained per region on a chronological split (training prior to 2024-08-08, testing after). Hyperparameter tuning is managed via GridSearchCV utilizing a TimeSeriesSplit to prevent look-ahead bias.
+Phase 4 (Smart Simulation)
+Handled by phase4_smart_optimizer.py. This script applies the selected forecasting model to the identical baseline dataframe. A configurable forecast noise module (apply_forecast_noise) perturbs the future weather features to simulate realistic forecasting errors, explicitly preventing an "oracle" scenario of perfect foresight.
+Orchestration and Sweeps
+Executed via run_all.py. This master script runs all phases, enforces strict simulation validations (e.g., energy-balance identities, non-negative costs), and performs automated sensitivity sweeps on forecast noise () and conservation thresholds ().
+Phase 5 (Dashboard)
+Handled by phase5_dashboard.py. A Streamlit interface provides interactive access to the region/algorithm outputs, KPIs, validation logs, and sensitivity charts.
+
+Data Acquisition and Preprocessing
+Meteorological Data Sourcing
+Historical weather telemetry for this study was originally sourced and downloaded via the Visual Crossing Weather Data Services API. This raw data is provided as a multi-site hourly dataset (swkdataweather.csv) bundled within the project repository for total reproducibility. The file aggregates data for five distinct Sarawak regions. Each site contributes 43,872 hourly records spanning from 2020-01-01 to 2025-01-01 23:00, yielding 219,360 raw rows total. The radiative data includes global horizontal irradiance (GHI), direct normal irradiance (DNI), and diffuse horizontal irradiance (DHI), alongside ambient temperature, relative humidity, precipitation, and cloud cover.
+Data Preprocessing and Cleaning
+Preprocessing ensures strict hourly alignment per region. After timezone localization to Asia/Kuching (UTC+8), missing values are addressed using a combination of linear interpolation (capped at three consecutive gaps) and forward/backward filling. Radiative columns are clamped at zero to remove any sensor noise causing negative outputs. The output files form the direct inputs for the physical synthesis engine.
+Synthetic Generation of Ground Truth
+Because historical generation logs from a physical installation were unavailable, ground-truth PV power is mathematically synthesized using pvlib.modelchain.ModelChain with the physical AOI model. This generates an AC power profile (Target_Power_kW), which serves as the unified truth consumed by both the baseline/smart simulations and the machine learning regressors in Phase 3.
+Exploratory Data Analysis Protocol
+Exploratory Data Analysis (EDA) is generated per region (or as 5-panel figures) to examine multicollinearity among the seven final predictors and the target PV power. The analysis confirms the expected strong positive correlations between solar irradiance parameters and generation, alongside the inverse relationship of cloud opacity during the Northeast Monsoon.
+Baseline Method Formulation
+Concept Definition
+To quantify the AI's value, a conventional "Self-Consumption" algorithm is established as the baseline. This deterministic controller is completely reactive, meaning it buffers excess solar or discharges to support loads based strictly on the current hour's state, totally lacking forward-looking predictive intelligence.
+Control Logic
+The baseline calculates the instantaneous net power mismatch between load and solar generation. If there is a surplus, the battery charges up to its 5 kW AC limit. If there is a deficit, the battery discharges to cover the home load up to the 5 kW limit, provided it remains above the 0.15 SoC floor. Any residual deficit is covered by grid imports. The physical limits are governed strictly by the battery's state-space equation incorporating the round-trip efficiency penalty.
+Limitations
+The primary limitation of this myopic approach is its failure to account for Time-of-Use tariffs. The controller naturally discharges early in the morning (e.g., 00:00 to 06:00) to cover trivial loads. By the time the expensive peak window starts at 07:00 (charged at 0.245 RM/kWh compared to the 0.139 RM/kWh off-peak rate), the battery is frequently depleted, forcing the household to purchase expensive peak-time electricity.
+Proposed Method: AI-Powered Optimization
+To overcome the myopic limitations of the standard baseline controller, this research introduces an AI-powered optimization framework. This proposed method shifts the operational paradigm from reactive load-matching to proactive energy management. By integrating a machine learning forecasting module with a deterministic rule-based controller, the system is designed to predict future photovoltaic generation and execute strategic energy arbitrage under the Time-of-Use tariff structure. The following subsections detail the architectural development of the predictive models, including feature engineering and rigorous validation protocols, followed by the formulation of the smart conservation logic that governs the daily battery dispatch.
+Development of Forecasting Module
+Input Feature Engineering
+The machine learning forecasting module utilizes a refined seven-column feature vector read directly from the processed weather table. These features are specifically selected to represent the primary environmental and temporal drivers of solar photovoltaic generation. The exact deployed features are detailed in Table 3.1, which categorizes the inputs into meteorological parameters and temporal indicators designed to capture cyclic diurnal and seasonal patterns, respectively.
+Table 3.1: Development of Forecasting Module - Input Feature Engineering
+
+--- TABLE START ---
+Feature Category | Variable Name | Description
+Meteorological | ghiradiation | Global horizontal irradiance.
+Meteorological | temp | Ambient temperature.
+Meteorological | humidity | Relative humidity.
+Meteorological | precip | Precipitation levels.
+Meteorological | cloudcover | Cloud cover opacity.
+Temporal | hour | Hour of the day to capture diurnal cycles.
+Temporal | month | Month of the year to capture seasonal patterns.
+--- TABLE END ---
+
+
+Training and Validation Protocol
+The primary target variable for the forecasting module is Target_Power_kW. To effectively prevent look-ahead bias during model training, the dataset is subjected to a strict chronological split rather than random shuffling. Specifically, the training data consists of all records prior to August 8, 2024, yielding exactly 40,344 training rows and 3,528 testing rows for each region. Hyperparameter tuning is subsequently conducted utilizing GridSearchCV paired with TimeSeriesSplit configured to five splits, scoring for the lowest negative root mean squared error.
+The hyperparameter search strategies differ between the evaluated algorithms, as outlined in Table 3.2. For the Support Vector Regression model, maintaining computational tractability requires the grid search to be performed over an 8,000-row chronologically spaced subsample before refitting the best-identified parameters on the full 40,344 training rows. Final testing metrics evaluated on the held-out window include Root Mean Squared Error (RMSE), Mean Absolute Error (MAE), the Coefficient of Determination (R²), and hourly Mean Absolute Percentage Error (MAPE). The MAPE calculation is strictly restricted to hours where actual PV generation exceeds 0.05 kW to prevent mathematical errors caused by division by near-zero nighttime values.
+Table 3.2: Hyperparameter Search Spaces
+
+--- TABLE START ---
+Algorithm | Pipeline / Preprocessing | Grid Search Scope
+Random Forest | None | Tests 108 combinations varying the number of trees, maximum depth, minimum samples split, and leaf limits.
+Support Vector Regression (SVR) | StandardScaler pipeline | Tests 36 combinations varying C, gamma, and epsilon using the RBF kernel.
+--- TABLE END ---
+
+
+Development of Optimization Algorithm
+
+Figure 3.3: Smart Conservation Logic Flowchart
+
+Formulation of Conservation Logic
+The AI-driven predictive layer modifies the battery dispatch via a daily "Conservation Mode." At midnight, the controller processes the upcoming 24-hour feature window to forecast energy availability. The predicted daily energy () is estimated as:
+
+--- TABLE START ---
+ | Equation 2.5
+--- TABLE END ---
+
+If  falls below a critical threshold (, defaulting to 18.0 kWh/day), the system proactively flags the day for conservation. During a designated conservation day, off-peak discharging is strictly constrained to a predefined essential limit, which defaults to 0 kW, provided the State of Charge (SoC) is below a reserve threshold of 0.50. This control logic effectively forces the battery to hoard its stored energy until the high-cost peak window opens.
+Algorithm Execution Flow
+For optimal computational speed, the midnight  decisions are vectorized and precomputed prior to the operational loop. The simulation then sequentially loops through the timeline on an hour-by-hour basis. To ensure complete transparency and traceability, the smart outputs explicitly log the Forecast_Energy_kWh_Predicted column, providing complete auditability of the midnight decision state against the actual realized weather outcomes.
+
+Simulation Environment
+Battery and Inverter Modeling
+The Python simulation employs mathematical state updates mapped directly to the LFP battery physics. The round-trip efficiency of 0.95 is enforced via a  penalty applied separately to charging and discharging equations. Capacity is strictly clamped between the minimum SoC of 15% and maximum of 100%, and continuous power flows are clamped by the hybrid inverter's 5 kW throughput threshold.
+Table 3.3: Simulation Constants and System Parameters
+
+--- TABLE START ---
+System Component / Category | Parameter | Value
+PV Configuration | DC Nameplate Capacity | 5 kWp
+ | Surface Tilt Angle | 5°
+ | Azimuth Angle | 180°
+ | Linear Temperature Coefficient | -0.004 / °C
+Battery Specifications | Usable Energy Capacity | 10 kWh
+ | AC Charge/Discharge Limit | 5 kW
+ | Minimum State of Charge (SoC) | 0.15
+ | Round-Trip Efficiency | 0.95
+Tariff Structure (Sarawak C3 Context) | Peak Hours (07:00 – 22:00) | 0.245 RM/kWh
+ | Off-Peak Hours | 0.139 RM/kWh
+--- TABLE END ---
+
+
+Household Load Profiling
+To isolate the research, focus entirely on PV forecasting and battery dispatch efficiency, household load is generated synthetically and deterministically (via numpy_seed = 42). The profile is designed with morning and evening demand peaks, weekend multiplier adjustments (1.10), and a per-day target energy drawn uniformly from 15 to 20 kWh. Gaussian scaling and per-hour noise are injected before daily normalization, keeping the load variable but mathematically reproducible.
+Dashboard Development
+The implementation of the Digital Twin culminates in phase5_dashboard.py, a Streamlit interface. The dashboard allows operators to select the specific region and forecasting algorithm, visually unpack the economic KPIs, explore training diagnostics, audit validation logs, and interact with the sensitivity analysis charts.
+Performance Evaluation Metrics
+Table 3.4: Summary of Performance Evaluation Metrics
+
+--- TABLE START ---
+Evaluation Category | Specific Metrics Utilized | Purpose / Notes
+Predictive Metrics | Root Mean Squared Error (RMSE) Mean Absolute Error (MAE) Coefficient of Determination (R²) Hourly Mean Absolute Percentage Error (MAPE) | Evaluates the accuracy of the machine learning forecasts. (Note: MAPE is specifically filtered for hours with generation > 0.05 kW).
+Economic & Operational Metrics | Total Annual Cost (RM) Self-Sufficiency Ratio (SSR) Peak Grid Imports (kWh) | Evaluates the financial savings, grid independence, and operational efficiency of the battery dispatch simulation.
+Statistical Metrics | Wilcoxon signed-rank test Paired t-tests | Evaluates the statistical significance of the daily cost savings when comparing the proposed smart policy against the baseline.
+--- TABLE END ---
+
+
+Predictive Accuracy Metrics
+The core regression accuracy of the models is evaluated using RMSE, MAE, R², and the specialized hourly MAPE metric (which filters out nighttime zero-generation hours). A separate daily PV energy MAPE is utilized during Phase 4 orchestration to evaluate how accurately the midnight cumulative estimation performed.
+Economic and Operational Performance Metrics
+The primary economic performance metric is the continuous sum of Hourly_Cost_RM over the complete temporal span. A separate daily-reset evaluation is also executed, forcibly resetting the simulation to initial_soc_daily_reset = 0.50 every night; this provides isolated daily populations necessary for conducting Wilcoxon signed-rank and paired t-tests on the daily costs between baseline and smart policies. Grid independence is measured using the standard Self-Sufficiency Ratio (SSR) formula.
+Sensitivity Analysis
+The codebase automates two rigorous sensitivity sweeps to validate operational stability:
+Forecast Error Sensitivity
+A  sweep evaluates the system under artificially injected Gaussian noise (ghi_noise_sigma) at levels [0.00, 0.10, 0.20, 0.30, 0.40], across 10 random seeds. The  iteration establishes the "oracle" ceiling for perfect foresight.
+Conservation Threshold Sensitivity
+An  sweep iterates the daily decision threshold from 10.0 to 25.0 kWh/day to empirically locate the maximum return on investment. Both analyses automatically output standard deviation boundaries and scatter distributions to prove algorithmic robustness against real-world uncertainty.
+
+
+
+
+
+
+
+
+
+ Implementation and results
+Introduction
+Scope of the Chapter
+This chapter bridges the conceptual methodology presented in Chapter 3 with its practical software implementation. It details the structural development of the simulation pipeline, outlining the specific Python modules, configuration variables, and command line interfaces that orchestrate the digital twin. Furthermore, this chapter presents the experimental results derived from the multiple region simulations, including economic metrics, performance plots, and sensitivity sweeps. For the evaluations presented herein, the continuous timeline cost analysis is driven by the configuration setting evaluation.headline_primary equal to "continuous_csv_cost_and_peak", while the isolated daily statistical evaluations and paired significance tests enforce scenario.initial_soc_daily_reset equal to 0.50 to ensure independent daily populations.
+Mapping to Chapter 3
+To ensure traceability, the theoretical frameworks defined in Chapter 3 map directly to their concrete software implementations. This alignment is comprehensively detailed in Table 4.1, which outlines the primary architectural function of each Python module relative to its methodological concept.
+Table 4.1: Mapping of Theoretical Methodology to Software Implementation Modules
+
+--- TABLE START ---
+Methodology Concept (Chapter 3) | Software Implementation Module (Chapter 4) | Primary Architectural Function
+Data Acquisition & Prep (§3.3) | phase1_split_multi_region.py | Coordinates ingestion, geospatial slicing with 0.02° tolerance, and strict gap-filling.
+Physical PV Synthesis (§3.3.3) | phase1b_physics_synthesis.py | Simulates AC solar power output via a physics-based pvlib ModelChain.
+Baseline Controller (§3.4) | phase2_baseline_sim.py | Models reactive self-consumption dispatch and generates seeded synthetic load profiles.
+AI Forecasting Module (§3.5.1) | phase3_ai_training.py | Trains and tunes Random Forest and SVR models using chronological cross-validation.
+Smart Battery Optimizer (§3.5.2) | phase4_smart_optimizer.py | Executes day-ahead lookahead decisions and simulates forecast-error noise injection.
+Performance Evaluation (§3.7) | run_all.py | Orchestrates the multi-region sweeps, validates energy bounds, and runs statistical significance tests.
+Interactive Visualization (§3.6.3) | phase5_dashboard.py | Serves an interactive Streamlit user interface for multi-scenario comparative analysis.
+--- TABLE END ---
+
+
+Development Environment and Software Stack
+Language and Environment
+The simulation framework was developed and executed using Python version 3.10 or higher operating on a standard Windows 10 desktop environment. This ensures the pipeline remains lightweight and reproducible without requiring specialized cloud infrastructure.
+Core Dependencies
+The project relies on a standardized open source scientific stack. The core libraries are strictly pinned in the requirements text file to guarantee reproducibility across environments. The required packages include numpy version 2.3.5, pandas version 2.3.3, matplotlib version 3.10.8, scikit learn version 1.7.2, scipy version 1.16.3, pvlib version 0.15.0, joblib version 1.5.2, and streamlit version 1.54.0.
+Single Source of Truth: experiment_config.json
+The entire simulation is governed by a singular JSON configuration file named experiment_config.json, which acts as the explicit source of truth for all simulation parameters. This ensures that every run is strictly auditable. The configuration specifies the five target sites with a match tolerance degree of 0.02 and sets the active default to Kuching. Regarding models, the algorithms are defined as random forest and support vector machine, utilizing five cross validation splits and a support vector machine subsample limit of 8000 rows to manage computational loads. Determinism is enforced via a numpy seed of 42 and a forecast seed of 1337. For the sweeps, the controller bounds define a critical energy sweep values array of length 16 ranging from 10.0 to 25.0 kilowatt hours with 3 sweep seeds, alongside 5 forecast noise standard deviations utilizing 10 sweep seeds. Finally, pipeline execution flags dictate whether the script utilizes previously generated artifacts or rebuilds the entire pipeline from the raw comma separated values files. For the results presented in this chapter, all phases were executed to ensure full end to end validation.
+
+System Architecture and Repository Layout
+The software framework is designed around a modular, decoupled sequential architecture where data preparation, physical modeling, machine learning training, and system simulations are strictly separated into independent pipeline phases. This architectural choice ensures that the digital twin remains lightweight, computationally efficient, and highly scalable across multiple microclimates. By dividing the system into distinct operational modules, the pipeline maintains a clean separation of concerns. For example, the forecasting models are trained independently of the battery dispatch logic, allowing different regressors to be swapped in as plug-and-play components without modifying the core physical equations of the simulation engine. This separation also enables independent testing and verification of each step, securing the overall structural integrity of the codebase.
+High Level Module Diagram
+The overall software design and data-flow transitions are visually illustrated in Figure 4.1. As delineated in the diagram, the software architecture is organized into five primary layers: the Ingestion Layer, the Modeling Layer, the Simulation Engine, the Orchestration and Quality Assurance Layer, and the Presentation Layer.
+
+Figure 4.1: High-level architectural module diagram and data-flow transitions of the Sarawak solar-battery digital twin simulation.
+
+The data pipeline commences in the Ingestion Layer, where the raw multi-region weather records undergo geospatial coordinate filtering and gap-filling within the multi-region split module. The resulting cleaned meteorological traces are processed by the physical synthesis module to calculate the AC-side power generation profile, establishing the canonical target variable used consistently by the downstream modules.
+Once the data is prepared, the flow bifurcates into the Modeling Layer and the Simulation Engine. In the Modeling Layer, the training module trains and hyper-tunes the Random Forest and Support Vector Regression models using historical training records, subsequently serializing the optimized models as persistent estimators. Simultaneously, the baseline simulation module within the Simulation Engine generates the deterministic, bimodal household load profiles and runs a stateful year-long simulation of the reactive self-consumption battery strategy, exporting the results as a baseline dataset.
+The smart simulation module then integrates these baseline load profiles, the processed solar generation traces, and the serialized forecasting models. Every midnight, it applies a seeded forecast-error model to perturb weather features before calling the forecaster, estimating the day-ahead solar sum to activate Conservation Mode on low-solar days and executing the smart dispatch policy hourly.
+The final output datasets from both baseline and smart runs are ingested by the Orchestration and Quality Assurance Layer. Here, the master controller manages the sensitivity sweeps, verifies the physical integrity of the energy logs against strict validation equations, and generates cross-region summaries. Structural correctness is further secured by the pytest regression suite. Finally, the Presentation Layer ingests the verified run results and serialized models to render the interactive Streamlit dashboard, providing researchers with scenario filters and live telemetry previews.
+Data and Artifact Directories
+To maintain repository hygiene and ensure auditability, the project enforces a strict, configuration-driven directory structure that separates source code from generated files. The project root contains the core execution scripts, configuration files, and the canonical raw dataset. The data directory is divided into raw ingestion subfolders and processed subfolders, where the cleaned and synthesised weather series are cached per region. The models directory stores the serialized forecasters alongside their GridSearchCV cross-validation results and fold diagnostics JSON files, ensuring that the machine learning stage does not need to be executed repeatedly.
+All simulation results, diagnostic plots, and statistical metric sheets are routed to the results directory. This folder is structured into two parts: a regional cache that holds the most recent baseline and smart runs for immediate use, and a dedicated orchestration folder that generates timestamped subdirectories for every full execution. These timestamped folders contain a complete, frozen snapshot of the active configuration, the raw daily metrics, the statistical paired-test results, and the generated savings and sensitivity plots, ensuring that all published thesis numbers are fully reproducible and open to academic audit.
+
+Implementation by Pipeline Phase
+Phase 1: Multiple Region Ingestion and Cleaning
+The raw meteorological dataset is ingested from the canonical swkdataweather.csv file, containing 219,360 total hourly records representing a five-year span (January 1, 2020 00:00 to January 1, 2025 23:00). The multi-region split module (phase1_split_multi_region.py) isolates divisional datasets by rounding geospatial coordinates to two decimal places and matching them against config-defined divisional centers within a strict tolerance limit of . This process isolates five identical divisional datasets containing exactly 43,872 hourly rows each.
+To ensure continuous timeline integrity and handle missing data points, a strict gap-cleaning protocol is enforced. Each region's time index is localized to the state's timezone (Asia/Kuching) and resampled to a strict 1-hour frequency using pandas. Any missing data gaps introduced by sensor downtime or transmission lag are filled using a dual-method protocol. Numeric weather fields (e.g., temperature, humidity) are filled using linear interpolation with a strict limit of three consecutive hours to prevent over-smoothing. Non-numeric categorical fields (such as local weather conditions and source flags) are resolved using forward-filling and backward-filling, preventing silent failures and pandas dtype warnings. Finally, physical boundaries are enforced on radiative solar fields—Global Horizontal Irradiance (GHI), Direct Normal Irradiance (DNI), Diffuse Horizontal Irradiance (DHI)—and precipitation by clipping negative sensor noise to a strict lower boundary of , securing the mathematical sanity of the physical models.
+Phase 1b: Physical Synthesis
+To synthesize the ground-truth AC-side power generation (Target_Power_kW), the processed meteorological fields are run through a physics-based pvlib ModelChain module (phase1b_physics_synthesis.py). To isolate the climatic impact of weather patterns in each region and eliminate hardware bias, the solar rooftop system parameters are strictly standardized across all five divisions. The physical setup consists of a canonical 5.0 kWp DC silicon array mounted with a fixed surface tilt of  and a south-facing azimuth of .
+Cell temperature and thermal losses are calculated utilizing the Sandia Array Performance Model (SAPM) parameters for an open-rack glass-to-glass module configuration. The model chain calculates the physical angle of incidence (AOI) utilizing a localized solar position algorithm. The meteorological variables map to the internal physical models as follows: Global Horizontal Irradiance (GHI) maps to ghi, Direct Normal Irradiance (DNI) to dni, Diffuse Horizontal Irradiance (DHI) to dhi, and air temperature to temp_air. Wind speed is factored in at a constant default value of  where physical anemometer readings are missing. The resulting AC output is converted to kilowatts, clipped to zero, and exported as Target_Power_kW with timezone information stripped (tz-naive) to maintain pipeline consistency across the simulation engine.
+Phase 2: Baseline Simulation
+The baseline simulation implements a digital battery twin within core_battery_model.py which mathematically updates the State of Charge (SoC) at each hour. As formulated in Equation 4.1, the digital twin splits the round-trip efficiency () symmetrically between charging () and discharging ():
+
+--- TABLE START ---
+ | Equation 4.1
+--- TABLE END ---
+
+
+When surplus solar power is available (), the battery charges, and the State of Charge increases, as mathematically modeled by Equation 4.2:
+
+--- TABLE START ---
+ | Equation 4.2
+--- TABLE END ---
+
+
+Conversely, when household demand exceeds solar generation (), the battery discharges to cover the deficit, drawing down the State of Charge as defined in Equation 4.3:
+
+--- TABLE START ---
+ | Equation 4.3
+--- TABLE END ---
+
+
+For these physical interactions, , , and . The battery twin strictly enforces physical constraints at each operational step, ensuring the SoC and hybrid inverter limits are securely bounded as expressed in Equation 4.4 and Equation 4.5, respectively:
+
+--- TABLE START ---
+ | Equation 4.4
+ | Equation 4.5
+--- TABLE END ---
+
+
+Furthermore, the domestic baseline simulation synthesizes hourly load patterns to establish a representative residential profile. The base diurnal demand profile follows a standard bimodal curve with a morning peak of 2.0 kW (occurring around 07:00) and a major evening peak of 3.0 kW (occurring around 18:00–20:00). Daily energy targets are drawn deterministically using a fixed numpy seed of 42, ranging between 15.0 and 20.0 kWh/day. Weekend scaling introduces an additional  multiplier to capture increased occupancy, while a normal stochastic noise vector () is injected hourly to emulate human behavioral spikes.
+Phase 3: Forecaster Training and Diagnostics
+In phase3_ai_training.py, two primary models are optimized. The dataset is strictly split at August 8, 2024, yielding 40,344 training rows and 3,528 testing rows. The training convergence behavior and learning efficiency of the primary regressor are visually illustrated in Figure 4.4, which plots the root mean squared error against the chronological training sample size for the representative Kuching model. The learning curve demonstrates a steady decrease in training error and a corresponding improvement in cross-validation scoring as the number of chronological rows increases, eventually reaching an asymptotic stabilization. This tight convergence gap between the training and validation curves mathematically proves that the model successfully generalizes the underlying solar patterns without experiencing significant overfitting or high-variance noise anomalies.Hyperparameter tuning is conducted using GridSearchCV combined with a TimeSeriesSplit to prevent chronological leakage. The exact hyperparameter configurations and resulting evaluation metrics are summarized in Table 4.2.
+
+Figure 4.2: Random Forest Regressor training and cross-validation learning curves showing RMSE versus training set size for the Kuching representative model.
+
+Table 4.2: Optimized Machine Learning Forecaster Hyperparameters and Held-Out Test Set Accuracy
+
+--- TABLE START ---
+Region | Model | Best Hyperparameters (Grid Search) | Test RMSE (kW) | Test MAE (kW) | Test R2 | Test MAPE (%)
+Kuching | RF | n_estimators=200, max_depth=20, min_samples_split=2, min_samples_leaf=4 | 0.0437 | 0.0119 | 0.9986 | 3.06%
+Kuching | SVR | C=100.0, gamma=0.01, epsilon=0.01, kernel='rbf' | 0.0440 | 0.0126 | 0.9986 | 0.97%
+Miri | RF | n_estimators=400, max_depth=None, min_samples_split=2, min_samples_leaf=4 | 0.0280 | 0.0078 | 0.9994 | 2.02%
+Miri | SVR | C=100.0, gamma=0.01, epsilon=0.01, kernel='rbf' | 0.0287 | 0.0097 | 0.9994 | 1.33%
+Bintulu | RF | n_estimators=200, max_depth=None, min_samples_split=2, min_samples_leaf=2 | 0.0241 | 0.0075 | 0.9996 | 2.05%
+Bintulu | SVR | C=100.0, gamma=0.01, epsilon=0.01, kernel='rbf' | 0.0179 | 0.0094 | 0.9998 | 1.36%
+Kapit | RF | n_estimators=400, max_depth=20, min_samples_split=2, min_samples_leaf=4 | 0.0265 | 0.0078 | 0.9995 | 2.22%
+Kapit | SVR | C=100.0, gamma=0.01, epsilon=0.01, kernel='rbf' | 0.0264 | 0.0095 | 0.9995 | 1.28%
+Sri Aman | RF | n_estimators=400, max_depth=None, min_samples_split=2, min_samples_leaf=2 | 0.0303 | 0.0080 | 0.9993 | 1.93%
+Sri Aman | SVR | C=100.0, gamma=0.01, epsilon=0.01, kernel='rbf' | 0.0319 | 0.0105 | 0.9992 | 1.08%
+--- TABLE END ---
+
+As detailed in Table 4.2, the optimized hyperparameters reveal specific architectural preferences. For the Random Forest, setting the maximum depth to None indicates trees were grown fully until all leaves were pure, which minimized bias in highly variable conditions. The Support Vector Regression was executed inside a scikit-learn pipeline pairing standard scaling with the radial basis function kernel. Grid searches evaluated a total of 144 candidate hyperparameter combinations for the Random Forest and 36 combinations for the Support Vector Regression. To maintain computational tractability, the Support Vector Regression tuning utilized an 8,000-row stratified chronological subsample before refitting the best estimator on the full 40,344 training rows.
+
+Figure 4.3: Hyperparameter validation curve plotting out-of-sample RMSE against tree depth (max_depth) for the Kuching representative Random Forest model.
+
+To justify the choice of final hyperparameter boundaries, Figure 4.5 illustrates the validation curve mapping out-of-sample prediction error against the tree depth parameter of the representative Kuching Random Forest regressor. The curve traces how validation error decreases sharply as the tree depth expands, identifying the optimal balance point where bias is minimized without triggering high-variance overfitting. This parameter grid search sweep provides clear empirical support for the hyperparameter configurations summarized in Table 4.2, securing a stable model.
+Phase 4: Smart Policy Simulation
+The smart control algorithm (phase4_smart_optimizer.py) is designed as a forecast-informed rule-based policy. Every midnight, the controller intercepts the next 24-hour weather prediction window. It uses the regional forecaster to predict the day's AC-side solar power output and integrates these predictions to calculate the expected daily photovoltaic energy yield, as defined by Equation 4.6:
+
+--- TABLE START ---
+ | Equation 4.6
+--- TABLE END ---
+
+
+The controller then compares this total against a configurable critical daily threshold (). If the predicted solar energy is insufficient (), Conservation Mode is activated for the calendar day. During hours designated as off-peak (22:00 to 07:00 the next day), if Conservation Mode is active, the battery's maximum discharge limit is throttled to 0.0 kW as soon as the State of Charge falls to or below a critical reserve (). This logic is mathematically represented by Equation 4.7:
+
+--- TABLE START ---
+ | Equation 4.7
+--- TABLE END ---
+
+
+Otherwise, the discharge power is allowed to operate up to the full inverter limit (5.0 kW). This reserve strategy ensures that the battery stores its energy during cheap off-peak hours and holds a 50% reserve to discharge exclusively during high-cost peak periods (07:00 to 22:00), maximizing bill savings.
+To prevent the model from operating as a perfect oracle (which would artificially inflate savings), a configurable, seeded forecast-error model perturbs the weather features at midnight before the forecaster makes its predictions. The mathematical perturbations follow tropical meteorological error distributions. For Global Horizontal Irradiance (GHI) and precipitation, multiplicative log-normal noise is injected to prevent negative values, as modeled in Equation 4.8:
+
+--- TABLE START ---
+ | Equation 4.8
+--- TABLE END ---
+
+
+For ambient temperature, additive Gaussian noise is injected as shown in Equation 4.9:
+
+--- TABLE START ---
+ | Equation 4.9
+--- TABLE END ---
+
+
+For humidity and cloud cover, additive Gaussian noise is injected and clipped strictly to physical boundaries, illustrated by Equation 4.10 and Equation 4.11:
+
+--- TABLE START ---
+ | Equation 4.10
+ | Equation 4.11
+--- TABLE END ---
+
+
+Hour and Month calendar indices are strictly deterministic and are never perturbed.
+
+Figure 4.4: Operational decision logic and flow transitions of the forecast-informed smart battery control policy.
+
+The operational decision logic and flow transitions of the forecast-informed battery control policy are visually summarized in Figure 4.6. The flowchart outlines the chronological execution path, beginning at each calendar midnight when the controller queries the predictive model for the next twenty-four hours of meteorological conditions. If the predicted cumulative daily solar generation falls below the critical threshold, the system proactively activates the daily Conservation Mode toggle, applying specific off-peak battery discharge restrictions when the charge state drops to or below the reserve threshold. This structured routing guarantees that the battery hoards its energy during low-tariff hours, subsequently releasing the full discharge potential exclusively during peak-price periods.
+Orchestration: run_all.py
+The run_all.py module functions as the master orchestrator, managing the continuous execution flow for the entire digital twin environment. This script seamlessly bridges the data preparation, forecaster training, and simulation phases, handling both standard temporal evaluations and robust parameter sensitivity analyses. It sequentially executes the baseline and smart predictive pipelines across all five specified Sarawak regions and both machine learning algorithms. During execution, it automatically triggers the mathematical validation checks—ensuring strict adherence to energy flow limits and billing identities—before finally computing and exporting the comprehensive system performance metrics for further analysis.
+Phase 5: Streamlit Dashboard
+To translate the extensive multidimensional simulation outputs into an interactive, user-accessible research tool, the presentation layer is developed as a comprehensive web interface using the Streamlit library (phase5_dashboard.py). The dashboard functions as a dynamic "what-if" planning application, enabling researchers and utility evaluators to load saved run bundles from the orchestration directory, modify physical battery and tariff specifications on the fly, and inspect the downstream financial outcomes in real time. The backend of the dashboard is integrated directly with the simulation engine. When user-controlled sliders are adjusted, the Streamlit app dynamically re-runs the hourly baseline and smart simulation routines in the background, updating all downstream metrics and plots instantly. The application is structured into four primary analytical tabs, each designed to address a specific tier of the system evaluation.
+
+Figure 4.5:  User interface layout and interactive control panel arrangement of the running Streamlit dashboard.
+
+The structural arrangement and interactive interface of this planning application are illustrated in Figure 4.7, detailing the spatial separation between user controls and output canvases. The layout incorporates a left-hand collapsible sidebar hosting custom input sliders for initial state-of-charge overrides, load/solar scaling factors, and tariff parameters, alongside a wide main container that houses the analytical tabs. This spatial organization ensures that researchers can intuitively toggle input variables and inspect the downstream numerical and graphical consequences without cluttering the active workspace.
+Tab 1: System Concept and Methodology
+The first tab establishes the conceptual and pedagogical foundation of the digital twin, presenting a clear explanation of the system physics and control logic. This panel is designed for non-specialists and academic examiners alike, illustrating the daily cycle of solar generation, battery storage charging, and residential consumption. It defines the mathematical relationship of net load, showing how surplus solar power is captured and how grid imports are billed under the two-rate Time-of-Use tariff. By framing the battery as an active financial instrument rather than a passive backup reservoir, this section explains the economic motivation behind the project. It outlines the core operational differences between the reactive self-consumption baseline and the forecast-informed smart policy, preparing the user to understand the interactive simulations in the subsequent tabs.
+
+Figure 4.6: Decoupled energy flow topology diagram rendered dynamically inside Tab 1 of the Streamlit dashboard.
+
+To facilitate an intuitive understanding of the physical system connections, Figure 4.8 displays the interactive energy flow topology diagram rendered dynamically within Tab 1 of the dashboard interface. The diagram utilizes directional arrows to map the real-time energy flows between the photovoltaic array, the residential load, the battery storage twin, and the utility grid. This layout visually reinforces the underlying mathematical energy balance equations, demonstrating how excess solar power is routed into storage and how load deficits are dynamically covered by battery discharge or grid imports under the active control rules.
+Tab 2: Interactive Day Preview
+The second tab serves as an interactive single-day scenario replay engine, allowing users to select any specific calendar date from the five-year dataset to analyze hourly battery dispatch behavior. The sidebar exposes three live simulation overrides, including slider controls for the initial State of Charge, a solar PV scaling factor, and a household load scaling multiplier. Adjusting these widgets triggers an instantaneous background re-simulation of the chosen day, comparing the baseline and smart policies under the new operating parameters.
+The tab renders four interactive, synchronized line charts to illustrate the system mechanics. The first plot displays the bimodal household demand curve overlaid against the synthesized solar generation profile, highlighting the midday generation surplus. The second plot shows the battery State of Charge trajectories for both strategies. This chart provides the primary visual proof of the smart policy's efficacy; on low-solar conservation days, it displays the baseline battery discharging prematurely during cheap off-peak hours and entering the expensive peak window depleted, while the smart battery holds its fifty percent state-of-charge reserve and discharges exclusively during high-cost peak hours. The third and fourth plots map the resulting bidirectional grid imports and the cumulative daily cost curves, visually demonstrating how conservation mode successfully minimizes electricity bills by shifting import times.
+
+Figure 4.7: Synchronized four-panel single-day timeline showing PV-load demand, State of Charge, grid imports, and cumulative cost curves in Tab 2.
+
+The hourly operational behavior of the smart controller during a low-solar day is captured in Figure 4.9, displaying the synchronized four-panel visualization rendered in Tab 2 of the dashboard. The timeline plots compare the baseline reactive self-consumption policy against the smart predictive policy, exposing how the smart policy hoards the battery's charge at a fifty percent reserve during off-peak hours and releases it exclusively when the high-cost peak window opens. This clear visual comparison provides empirical proof of the policy's efficacy, showing how shifting import spikes from peak to off-peak periods translates directly into an optimized cumulative cost curve.
+Tab 3: Annual and Long-Term Performance
+The third tab provides a macro-level, aggregate evaluation of the simulation over the entire multi-year timeline, rendering monthly, seasonal, and annual summaries. To ensure scientific rigor, this tab features a prominent daily-reset toggle that alters the underlying evaluation counterfactual. When the toggle is disabled, the dashboard renders the stateful continuous yearly metrics, where the battery State of Charge carries over across midnight boundaries, matching realistic billing cycles. When the daily-reset toggle is enabled, the backend replays each day in strict isolation, resetting the State of Charge to a uniform fifty percent each midnight to create independent daily samples for paired statistical testing.
+Additionally, this tab includes a conservation days filter, isolating the savings and peak reductions achieved exclusively on the days when the smart policy classified the solar potential as low. To bridge the macro yearly views with the micro daily replays, the tab surfaces a ranked list of the top savings days, displaying the dates that yielded the highest monetary savings. This feature encourages researchers to identify highly successful days and reload them in the second tab to audit the hourly dispatch mechanics.
+
+Figure 4.8: Long-term performance visualization in Tab 3 plotting monthly cumulative costs and full-year KPI summaries.
+
+The macro-level, aggregate economic outcomes are visually summarized in Figure 4.10, showing the long-term performance visualization rendered within Tab 3 of the dashboard interface. The upper panel plots the monthly cumulative electricity billing costs for the baseline and smart policies across a full simulated calendar year, illustrating a consistent cost reduction in every month. The lower panel displays the standardized key performance indicators extracted directly from the serialized metrics dataset, providing evaluators with an immediate, high-fidelity scoreboard of annual financial savings and peak-period grid import reductions.
+
+Tab 4: Model and Pipeline Diagnostics
+The fourth tab represents the thesis-grade diagnostic center of the application, designed to supply examiners with the complete empirical proof supporting the project's claims. To facilitate direct citations in academic reviews, the panel is compartmentalized into six numbered sections.
+The first section presents the model comparison scoreboard, displaying a side-by-side table of the test-window metrics (RMSE, MAE, R², and MAPE) for the Random Forest and Support Vector Regression models, and automatically flags the optimal regressor for the selected region. The second and third sections render the machine learning training diagnostics, dynamically loading the serialized training figures to display cross-validation fold scores, training learning curves, and hyperparameter validation curves.
+The fourth section, dedicated to simulation validation, serves as the mathematical quality assurance center. It renders the five validation formulas from the project's validation framework as clean LaTeX equations, accompanied by live maximum absolute error logs and green "PASS" badges, verifying that the current simulation strictly adheres to physical energy conservation and tariff identities. The fifth section displays the statistical significance scoreboard, reporting the Wilcoxon signed-rank and paired-t-test statistics and p-values. It also displays the perfect-foresight ceiling card, showing the percentage of the theoretical maximum savings captured by the noisy model.
+The sixth and final section renders the forecast sensitivity sweep. This panel displays the aggregate performance table and errorbar chart, plotting annual savings on the y-axis against the GHI forecast noise standard deviation (σ) on the x-axis, with error bars representing the standard deviation across ten randomized seeds. This visualization mathematically proves the control policy's robustness, illustrating that even under severe meteorological forecast error, the smart optimizer consistently outperforms the self-consumption baseline.
+
+Figure 4.9: Machine learning forecast regression scatter plot and prediction error residual distribution rendered in Tab 4.
+
+The empirical regression diagnostics that support the predictive modeling are illustrated in Figure 4.11, displaying the live forecast validation curves hosted in Tab 4 of the dashboard. The left-hand panel exhibits a predicted-versus-actual solar generation scatter plot for the held-out test dataset, confirming a tight alignment around the ideal identity line. The right-hand panel renders a high-resolution histogram of prediction errors, showing a symmetric, zero-centered Gaussian residual distribution that mathematically validates the predictive performance and regression metrics achieved by the machine learning pipeline.
+
+Automated Validation, Quality Assurance, and Unit Tests
+Runtime Checks in run_all.py
+To ensure that all simulated outcomes conform to physical laws and electricity billing rules, the orchestration engine (run_all.py) runs five continuous mathematical validation checks at the end of every simulation run before exporting data.
+First, Time-Series Regularity (SV-01) asserts that the index contains only hourly increments (1 hour steps) and is completely timezone-naive with no duplicates. Second, State of Charge Bound Verification (SV-02) asserts that the battery charge state is strictly bounded, ensuring conformity to Equation 4.12:
+
+--- TABLE START ---
+ | Equation 4.12
+--- TABLE END ---
+
+
+Third, Non-Negativity Assertions (SV-03) enforce that grid imports and electricity costs are never negative, as modeled in Equation 4.13:
+
+--- TABLE START ---
+ | Equation 4.13
+--- TABLE END ---
+
+
+Fourth, Energy Balance Conservation (SV-04) enforces the physical conservation of energy. Reconstructed grid imports must match the physical net power equation within a highly restrictive tolerance, dictated by Equation 4.14:
+
+--- TABLE START ---
+ | Equation 4.14
+--- TABLE END ---
+
+
+Finally, Tariff Spot-Check (SV-05) verifies that the calculated hourly cost matches the billing tariff rules on key peak-to-offpeak transition hours within the tolerance defined by Equation 4.15:
+
+--- TABLE START ---
+ | Equation 4.15
+--- TABLE END ---
+
+
+A violation of any of these assertions raises an immediate runtime exception, stopping the pipeline from outputting corrupted data.
+
+Figure 4.10: Sequential checking execution flow of the five-stage physical and billing validation checklist integrated within the run_all.py pipeline.
+
+The sequential execution flow and logic checkpoints of these five automated verification layers are visually mapped in Figure 4.12, displaying the strict fail-fast architecture implemented within the master controller script. The validation pipeline processes the raw hourly baseline and smart CSV datasets, passing them through independent checking modules that enforce time-series regularity, state-of-charge boundaries, non-negativity constraints, physical energy conservation, and tariff-billing identities. By executing these checks prior to exporting any summary files, the orchestration engine guarantees that all reported figures and tables conform to physical laws and electrical regulations.
+
+Pytest Suite
+To further ensure the reliability and structural integrity of the codebase, a robust automated unit testing suite comprising over 30 individual test cases was implemented utilizing the pytest framework. This suite is strictly designed to protect against code regressions and mathematically confirm structural invariants across the pipeline modules before execution. The testing architecture is compartmentalized into distinct test modules, each targeting a specific layer of the digital twin environment.
+As detailed in Table 4.3, the unit testing suite assesses distinct functional properties across three primary modules. The tests/test_multi_region_split.py module strictly validates the initial data ingestion layer by confirming coordinate matching tolerances, gap-filling boundary limits, and chronological integrity. The tests/test_forecast_noise.py module mathematically ensures that the stochastic noise injection mechanism remains perfectly deterministic when initialized with a fixed seed, and verifies that the error scales accurately against the configured standard deviations without violating physical boundaries. Finally, the tests/test_simulate_inprocess.py module tests the core simulation engine, verifying critical edge cases such as ensuring that when the standard deviation is set to zero (), the forecast model acts as a perfect mathematical oracle.
+Table 4.3: Summary of Automated Pytest Modules and Assessed Properties
+
+--- TABLE START ---
+Test Module | Property Assessed
+tests/test_multi_region_split.py | Validates coordinate matching, gap filling limits, and chronological boundary integrity.
+tests/test_forecast_noise.py | Ensures noise injection is perfectly deterministic when seeded and accurately scales with standard deviations.
+tests/test_simulate_inprocess.py | Verifies that when standard deviation equals zero, the system acts as a perfect mathematical oracle.
+--- TABLE END ---
+
+
+Experimental Results
+Headline Economic and Energy KPIs
+The foundational performance metrics represent the continuous uninterrupted simulation of the environment using the optimal prediction parameters. The primary comparison rests upon the economic savings generated by the AI-powered predictive dispatch against the standard reactive baseline. As detailed in Table 4.4, both the Random Forest and Support Vector Regression models successfully generated annual cost reductions across all five regions while simultaneously lowering peak grid imports.
+Table 4.4: Annual Economic and Operational Performance Metrics Across Sarawak Divisions
+
+--- TABLE START ---
+Region | Model | Annual Savings (RM) | Peak Reduction (kWh) | Wilcoxon p-value | Paired t p-value | Pct of Perfect Ceiling (%) | Best Ecrit​ (kWh)
+Kuching | RF | 25.71 | 354.34 |  |  | 93.28% | 18.0
+Kuching | SVR | 25.57 | 329.89 |  |  | 95.67% | 18.0
+Miri | RF | 9.92 | 229.30 |  |  | 100.73% | 18.0
+Miri | SVR | 9.01 | 216.59 |  |  | 87.18% | 18.0
+Bintulu | RF | 18.46 | 271.64 |  |  | 96.96% | 18.0
+Bintulu | SVR | 17.97 | 261.58 |  |  | 96.86% | 18.0
+Kapit | RF | 20.88 | 332.17 |  |  | 96.61% | 18.0
+Kapit | SVR | 19.83 | 319.71 |  |  | 91.27% | 18.0
+Sri Aman | RF | 26.25 | 404.09 |  |  | 99.80% | 18.0
+Sri Aman | SVR | 25.73 | 396.58 |  |  | 97.88% | 18.0
+--- TABLE END ---
+
+
+As explicitly shown by the computational outputs in Table 4.4, Sri Aman achieved the highest total savings and peak reduction, whereas Miri presented a more constrained optimization envelope. Across all regions, the Random Forest algorithm consistently edged out the Support Vector Regression model in total monetary savings.
+
+Figure 4.11: Annual cumulative grid electricity billing cost comparison between the baseline and smart control policies for the Kuching representative region.
+
+To visually compare the cumulative financial outcomes across the simulation timeframe, Figure 4.13 illustrates the annual grid electricity billing costs under the baseline reactive self-consumption policy and the smart, forecast-informed battery control models for the primary representative region, Kuching. The bar chart demonstrates a consistent reduction in annual utility bills for both the Random Forest and Support Vector Regression forecasters, confirming that predictive day-ahead operational planning always outperforms myopic reactive operation. By focusing on Kuching as a visual exemplar, the plot clearly highlights the localized savings margins achieved under the Sarawak tariff structure, serving as the benchmark behavior represented numerically for all divisions in Table 4.4.
+
+Figure 4.12: Battery State of Charge (SoC) probability density distribution comparing baseline reactive and smart lookahead operational profiles in the Kuching representative region.
+
+To explain the underlying physical behavior of the storage unit, Figure 4.16 illustrates the battery State of Charge (SoC) probability density distribution comparison over the entire simulation timeline for the Kuching representative division. The baseline reactive controller displays a characteristic bimodal peak at the extreme bounds, where the battery is frequently either completely depleted at its fifteen percent minimum floor or fully charged at one hundred percent, indicating myopic charging and rapid depletion. Conversely, the smart, forecast-informed controller displays a highly pronounced density peak centered precisely at the fifty percent reserve state-of-charge threshold, confirming that the battery actively hoards its stored energy on low-solar conservation days and holds its charge to cover expensive peak-period loads.
+Statistical Significance
+The statistical significance tests are performed by treating each day of the year-long simulation as a paired sample ( total days across five years). The daily economic savings () are defined by Equation 4.16:
+
+--- TABLE START ---
+ | Equation 4.16
+--- TABLE END ---
+
+
+Where the total daily cost is the sum of the hourly billing, established in Equation 4.17:
+
+--- TABLE START ---
+ | Equation 4.17
+--- TABLE END ---
+
+
+
+As established by the calculations in Equation 4.16 and Equation 4.17, the daily cost differences are evaluated using the non-parametric Wilcoxon signed-rank test (which requires no assumption of normality) and the parametric paired-sample -test. Across all five regions and both algorithms, the resulting -values are extremely close to zero (), far below the standard academic significance alpha of 0.05. This rigorously rejects the null hypothesis and confirms that the economic savings are a direct result of the forecast-informed control policy rather than random fluctuations in demand.
+
+Figure 4.13: Probability density histogram of daily financial savings achieved by the smart battery policy in the Kuching representative region.
+
+The microscopic operational variance and daily saving trends are visually mapped in Figure 4.14, which plots the probability density histogram of daily savings achieved by the smart policy over the baseline across the multi-year simulation for the Kuching representative site. The distribution exhibits a strong positive skew, demonstrating that while a significant portion of days yield zero or near-zero marginal savings when solar generation is abundant, a large population of days results in substantial cost reductions. This visual distribution validates the paired statistical outcomes, illustrating that the accumulated cost differences are driven by consistent, highly positive operational shifts during forecasted low-solar conditions.
+Conservation Threshold Sensitivity Sweep
+To ensure the robustness of the decision logic, a secondary automated grid search was executed to optimize the critical energy threshold () which dictates the daily activation of the Conservation Mode toggle. The sensitivity sweep algorithmically evaluated 16 discrete operational intervals ranging from 10.0 to 25.0 kilowatt-hours per day. To account for stochastic variance, these intervals were tested over three independent random seeds. This rigorous mathematical verification confirmed that 18.0 kilowatt-hours per day serves as the universally optimal operational parameter across all five distinct microclimates, perfectly corroborating the static threshold values previously documented in Table 4.4.
+Daily Reset Evaluation versus Continuous Run
+The experimental methodology employed a dual-state evaluation approach to balance physical realism with statistical rigor. While the continuous simulation reflects realistic physical continuity and long-term battery cycling across the year, the statistical significance tests necessitated independent daily populations. Consequently, these specific evaluations utilized isolated daily reset states, forcing the battery to a default state of charge each midnight. A minor numerical discrepancy exists between the continuous yearly savings total and the straightforward summation of independent daily savings; this is an expected mathematical effect governed by the residual carry-over of stored energy that naturally occurs on non-reset days in the continuous timeline.
+
+Discussion
+Interpretation
+The overarching interpretation of the experimental outcomes reveals that both the Random Forest and Support Vector Regression models possess extremely high explanatory power for predicting the target photovoltaic generation. The comparative results essentially reflect the foundational architectural tradeoff between the two algorithms: the Random Forest leverages the highly flexible, non-linear capabilities of ensemble decision trees to maximize overall savings, whereas the Support Vector Regression prioritizes robust margin constraints and computational stability. Both approaches successfully translate raw meteorological data into actionable financial leverage under the simulated Time-of-Use tariff structure.
+Threats to Validity
+Several inherent constraints must be recognized when interpreting the economic and operational findings of this simulation. Regarding the generation of synthetic loads, despite the injection of robust stochastic noise, real-world residential demand profiles feature distinct and highly unpredictable human behavioral spikes that parametric generation cannot fully replicate. Concerning the accuracy of the day-ahead lookahead, while the application of Gaussian noise to the historical weather features effectively simulates basic forecast uncertainty, it does not completely emulate the complex, compounding physical errors outputted by true numerical weather prediction centers. Finally, regarding the modeled economic policies, the cost calculation assumes strict zero financial compensation for any excess energy exported back to the grid, framing the algorithmic optimization purely as an import-reduction exercise rather than a holistic two-way retail billing simulation.
+Chapter Summary
+This chapter successfully transitioned the theoretical methodology defined previously into a rigorous, executable software environment. The primary technical achievements include the implementation of a fully reproducible data ingestion and physical synthesis pipeline utilizing standard open-source Python libraries. Additionally, the study achieved the successful development of a deterministic, heavily auditable simulation module that effectively contrasts a baseline reactive controller against forecast-informed smart energy dispatch logic. Ultimately, the research executed robust sensitivity sweeps, successfully isolating the exact economic impact of weather forecast error and threshold decision parameters across five distinct regional climates in Sarawak.
+
+
+
+
+
+
+
+
+
+
+
+
+Testing
+Introduction
+This chapter outlines the testing and verification procedures executed to validate the software implementation described in Chapter 4. The testing follows a two-layer strategy designed to ensure both the structural integrity of the codebase and the mathematical correctness of the physical simulation. Layer A consists of 30 automated regression tests executed by pytest, grouped into data integrity for the raw swkdataweather.csv dataset, the correctness of the forecast noise injection (apply_forecast_noise), and the behavioural contracts of the core simulation (simulate). It should be noted that the data integrity test module is explicitly skipped if the swkdataweather.csv file is absent from the root directory. Layer B consists of hard systemic validations executed sequentially inside run_all.py after generating the baseline and smart operational outputs. These assertions enforce strict hourly regularity, State of Charge (SoC) limits, non-negative cost and import boundaries, energy balance within 1×10⁻⁶ kW, and tariff-cost consistency within 1×10⁻⁵ RM, as fully documented in the docs/VALIDATION.md reference. Together, these checks empirically demonstrate that the implementation conforms to the theoretical methodology proposed in Chapter 3.
+Test Environment
+The testing and execution environment was standardized to ensure reproducibility without requiring specialized cloud infrastructure. All tests were executed sequentially using the pytest framework within a local desktop environment. Table 5.1 details the specific environmental constraints and tooling parameters used for the verification phase.
+Table 5.1: Test Environment Specification
+
+--- TABLE START ---
+Item | Detail
+Project | AI-Predicted Solar Generation for Optimized Rule-Based Scheduling (Multi-region Sarawak simulation)
+Tool | pytest (Python 3.10+)
+Test Location | tests/test_multi_region_split.py, tests/test_forecast_noise.py, tests/test_simulate_inprocess.py
+Total Automated Test Cases | 30
+Precondition | swkdataweather.csv must be present at repo root for the 7 multi-region tests; otherwise, those tests are skipped via @pytest.mark.skipif (suite will still pass the remaining 23 tests).
+Typical Command | python -m pytest (executed from repository root)
+Reference for Formulas/Tolerances | docs/VALIDATION.md
+--- TABLE END ---
+
+
+Automated Test Cases (pytest)
+The automated testing suite focuses on verifying the individual functions, boundaries, and logic gates that compose the simulation pipeline. The 30 distinct tests are categorized into three primary modules.
+Data & Multi-Region Contract
+This suite verifies that the initial multi-region weather ingest strictly maps to the operational configurations defined in experiment_config.json and matches the data claims established in the thesis methodology (5 sites × 43,872 rows/site = 219,360 raw rows).
+Table 5.2: Multi-Region Data & Split (test_multi_region_split.py)
+
+--- TABLE START ---
+Test Case ID | Test Scenario | Test Steps (Summary) | Test Data | Expected Result | Actual Result | Status
+MR-01 | Required columns exist | Assert column set ⊆ raw CSV | swkdataweather.csv | Columns include latitude, longitude, datetime, temp, humidity, precip, cloudcover, ghiradiation, dniradiation, difradiation | Matches expected (automated) | Pass
+MR-02 | Exactly five (lat,lon) groups | Round lat/lon to 2 dp; count distinct pairs | Same CSV | 5 distinct groups | Matches expected (automated) | Pass
+MR-03 | Equal row count per group | Group by rounded lat/lon; count rows | Same CSV | Each group has 43,872 rows | Matches expected (automated) | Pass
+MR-04 | Config regions match CSV | For each regions.list entry, _match_region and tolerance check vs CSV pairs | experiment_config.json + CSV | Every configured region matches a CSV group within 0.02° | Matches expected (automated) | Pass
+MR-05 | Far point unmatched | _match_region for Singapore coords, large tol | (1.3521°N, 103.8198°E), tol=0.5 | Returns None | Matches expected (automated) | Pass
+MR-06 | Slice keys & row counts | _slice_by_region | CSV + config | Keys = all region names; each slice length 43,872 | Matches expected (automated) | Pass
+MR-07 | Cleaned frame contract | _clean_one_region on first region slice | First region in config | DatetimeIndex, monotonic increasing; radiative cols ≥ 0; no NaNs in numeric columns | Matches expected (automated) | Pass
+--- TABLE END ---
+
+
+Forecast-Error Model
+This suite tests phase4_smart_optimizer.apply_forecast_noise and seed resolution logic to guarantee that simulated weather prediction uncertainty adheres to strict determinism, obeys physical boundaries, and only mutates when explicitly configured.
+Table 5.3: Forecast Noise (test_forecast_noise.py)
+
+--- TABLE START ---
+Test Case ID | Test Scenario | Test Steps (Summary) | Test Data | Expected Result | Actual Result | Status
+FN-01 | Disabled forecast | enabled=False | Small X_24h | Output equals input (no-op) | Matches expected | Pass
+FN-02 | Empty forecast dict | {} | X_24h | No-op | Matches expected | Pass
+FN-03 | Non-mutation | Call noise; compare to copy of input | X_24h | Input dataframe unchanged | Matches expected | Pass
+FN-04 | Determinism | Same seed twice | default_rng(0) | Two outputs identical | Matches expected | Pass
+FN-05 | Seed sensitivity | Different seeds | Seeds 0 vs 1 | Outputs differ (where stochastic) | Matches expected | Pass
+FN-06 | σ=0, bias=0 | All sigmas 0, bias 0 | Features | Features unchanged (oracle path) | Matches expected | Pass
+FN-07 | Non-negative GHI/precip | After noise with clip | Positive radiative columns | ≥ 0 | Matches expected | Pass
+FN-08 | Humidity/cloud clip | Additive noise | humidity, cloudcover | Values in [0, 100] | Matches expected | Pass
+FN-09 | Calendar untouched | Noise on | hour, month | Unchanged vs truth | Matches expected | Pass
+FN-10 | GHI bias effect | ghi_bias non-zero | Configured bias | Mean GHI shifts in expected direction | Matches expected | Pass
+FN-11 | Forecast seed precedence | Patch config blocks | forecast.seed vs forecast_seed vs fallback | Resolved seed matches precedence rules in code | Matches expected | Pass
+FN-12 | Empty window | 0 rows | Empty frame | Returns empty; no error | Matches expected | Pass
+FN-13 | Missing optional columns | Drop optional cols | Partial columns | No exception; present cols still processed | Matches expected | Pass
+--- TABLE END ---
+
+
+Smart Simulation Core
+This testing module isolates the phase4_smart_optimizer.simulate API contract to verify that the digital twin strictly respects battery physics, operational invariants, and handles edge cases such as truncated day-ahead windows correctly.
+Table 5.4: In-Process Smart Simulation (test_simulate_inprocess.py)
+
+--- TABLE START ---
+Test Case ID | Test Scenario | Test Steps (Summary) | Test Data | Expected Result | Actual Result | Status
+SM-01 | Input not mutated | simulate then compare df_input | Baseline-like frame + dummy model | Input unchanged | Matches expected | Pass
+SM-02 | Determinism | Same df, model, cfg twice | Fixed cfg | Outputs identical | Matches expected | Pass
+SM-03 | Required columns | Inspect returned columns | Valid run | Includes SoC, Batt_Action_kW, Grid_Import_kW, Hourly_Cost_RM, Conservation_Mode_Active, Forecast_Energy_kWh_Predicted | Matches expected | Pass
+SM-04 | Legacy = noise off | forecast.enabled=False vs legacy path | Same inputs | Byte-for-byte compatible with disabled-forecast behaviour (per test assertion) | Matches expected | Pass
+SM-05 | Noise changes prediction | Enable noise vs off | Same df | Predicted energy / outputs differ when noise on | Matches expected | Pass
+SM-06 | SoC bounds | Scan SoC column | Full run | Within [soc_min, 1.0] (default soc_min=0.15) | Matches expected | Pass
+SM-07 | Import & cost sanity | Grid_Import ≥ 0; cost matches rate×import on samples | Tariff from cfg | Non-negative import; cost consistent with tariff logic in test | Matches expected | Pass
+SM-08 | Truncated last day | Short tail midnight | df where last day < 24 h | Conservation off for truncated midnight (defaults) | Matches expected | Pass
+SM-09 | Seed changes noise draw | Different forecast.seed | Same σ | Predictions change under noise | Matches expected | Pass
+SM-10 | σ=0 round-trip | apply_forecast_noise then predict | σ all zero | Matches no-noise prediction path (invariant) | Matches expected | Pass
+--- TABLE END ---
+
+
+System Validation
+Beyond isolated unit testing, the simulation relies on continuous mathematical assertions executed inside run_all.py at runtime. These validations occur post-simulation, acting as a final line of defence against data drift or physical impossibilities (such as spontaneous energy generation or negative costs) before finalizing the results for evaluation.
+Table 5.5: 5.5 System Validation (run_all.py Orchestration)
+
+--- TABLE START ---
+Check ID | What is validated | Method / Tolerance | Expected if pass
+SV-01 | Time series structure | Required columns; 1 h index; tz-naive index | Raises AssertionError if violated
+SV-02 | SoC bounds | SoC ∈ [soc_min, 1.0] (default 0.15–1.0) | Raises ValueError if violated
+SV-03 | Non-negative billing quantities | Grid_Import_kW ≥ 0, Hourly_Cost_RM ≥ 0 | Raises AssertionError if violated
+SV-04 | Energy balance / import identity | Reconstruct import from Load, Target_Power_kW, Batt_Action_kW | Max abs error ≤ 1e-6 kW
+SV-05 | Tariff ↔ cost identity | Spot-check representative hours | Abs error ≤ 1e-5 RM
+--- TABLE END ---
+
+
+Summary
+The testing phase confirmed the robustness and accuracy of the implemented digital twin framework. A clean run of the repository executed from the root directory yields an exit code of 0 for all 30 automated pytest functions. Furthermore, all four systemic validation groups executed through the master run_all.py orchestrator passed without triggering any absolute error tolerances or physical bound assertions. These verifications collectively guarantee that the economic and operational metrics reported in the previous chapter are grounded in a mathematically sound and deterministic simulation.
+
+
+
+
+
+
+Conclusion
+Introduction
+The preceding Chapter 5 established the structural integrity and mathematical correctness of the simulation framework through rigorous automated testing (via pytest) and run-time validations. Building upon that verified foundation, this chapter concludes the research by answering the core research question in plain language and summarizing what was achieved based on the empirical evidence reported in Chapter 4. Furthermore, this chapter acknowledges the inherent limitations of the digital twin methodology and proposes future work that naturally extends the established repository. The chapter concludes with a summary of the project work in Section 6.2, findings mapped to objectives in Section 6.3, limitations in Section 6.4, future work in Section 6.5, and a final thesis closing in Section 6.6.
+Summary of the Project Work
+Problem and Approach
+This project addressed the challenge of optimizing grid-tied residential photovoltaic (PV) and battery systems under a Time-of-Use (ToU) tariff structure in Sarawak. The optimization targeted a ToU pricing model with peak hours from 07:00 to 22:00 charged at 0.245 RM/kWh and off-peak hours at 0.139 RM/kWh. The study compared a baseline reactive self-consumption controller against an AI-powered smart controller that utilizes a day-ahead "Conservation Mode". This smart policy relies on a daily critical energy threshold () defaulting to 18.0 kWh/day and restricts off-peak discharging if the State of Charge (SoC) falls below a reserve of 0.50. The study was executed as a multi-region simulation, not a field deployment, utilizing deterministic synthetic load generation (numpy_seed = 42) and PV generation synthesized via pvlib using historical weather data across five distinct Sarawak locations.
+What was Built
+A fully reproducible, configuration driven pipeline was developed, governed by a single experiment configuration JSON file. The implementation consisted of several strictly scripted phases.
+For the data path, raw meteorological data from swkdataweather.csv was filtered and gap filled by the phase1_split_multi_region.py script, producing cleaned outputs that were converted into Target_Power_kW per region by the phase1b_physics_synthesis.py script.
+Regarding the models, the phase3_ai_training.py module trained both Random Forest and a StandardScaler paired with a Support Vector Regression pipeline utilizing a TimeSeriesSplit of 5 and GridSearchCV. The dataset, comprising 43,872 hourly rows per region spanning from January 1, 2020 to January 1, 2025, was chronologically split at August 8, 2024, yielding 40,344 training rows and 3,528 held out test rows.
+For system control, the phase4_smart_optimizer.py script simulated the battery dispatch logic and featured a forecast error module, named apply_forecast_noise, to inject realistic uncertainty, such as a default global horizontal irradiance  of 0.20, into day ahead predictions.
+The orchestration was handled by the run_all.py script which executed the end to end pipeline, producing regional evaluation metrics, statistical tests including Wilcoxon and paired t tests, and automated multi seed sensitivity sweeps on both forecast noise and the  threshold.
+Finally, for user interface and quality assurance, the findings were visualized via phase5_dashboard.py across four analytical tabs. Code integrity was strictly enforced by 30 automated pytest cases and continuous runtime validations checking energy balance and Time of Use billing identities.
+
+Conclusions
+Research Question and Hypothesis
+The central hypothesis stated that predictive lookahead from an AI forecaster enables a day ahead operating mode that reduces grid electricity costs compared with myopic self consumption. This was proven correct under the tested parameters.
+In terms of economic and operational impact, across all five simulated regions, the smart predictive dispatch successfully generated annual cost reductions and lowered peak grid imports. Specifically, Sri Aman achieved the highest total savings of RM 26.25 and the greatest peak import reduction of 404.09 kWh. Miri presented the most constrained optimization envelope, yielding RM 9.92 in savings via the Random Forest model.
+Regarding algorithm comparison, the Random Forest algorithm consistently outperformed the Support Vector Regression model in both total monetary savings and peak energy reduction across all regions, while maintaining comparable test RMSE scores, such as the Kuching Random Forest Test RMSE of 0.043 compared to the Support Vector Regression score of 0.044.
+For statistical significance, the observed daily cost reductions were statistically valid and not artifacts of random load variations, with all paired t test and Wilcoxon signed rank p values falling well below the 0.05 threshold. This is exemplified by the Kuching Random Forest Wilcoxon p value of 9.27 × 10⁻⁵⁰. The optimal critical energy threshold remained uniformly stable at 18.0 kWh for all regions.
+Main Technical Contributions
+The research yielded several main technical contributions. First, it delivered a reproducible multi region pipeline with a strictly auditable architecture controlled by a unified configuration file, successfully scaling from a single site prototype to five distinct Sarawak microclimates. Second, the study implemented dual transparent forecasters by comparing Random Forest and Support Vector Regression models utilizing time series aware cross validation. This avoided chronological leakage while maintaining high interpretability. Third, an explicit forecast error model closed the perfect foresight gap pervasive in simulation literature by introducing stochastic noise injection. This isolated the theoretical oracle bound where  equals 0 from realistic, noisy day ahead performance. Fourth, automated sensitivity analysis integrated continuous  sweeps and  multi seed aggregations to mathematically map the algorithms operational robustness against real world uncertainty. Finally, rigorous automated validation secured the digital twins physical integrity with a 30 case test suite and strict runtime energy balance assertions, ensuring findings are mathematically sound.
+Objectives Mapping
+The project successfully mapped its findings to the initial objectives. The first objective was to develop a multi region digital twin simulation framework integrating AI forecasting with a rule based controller. This was successfully achieved and implemented via phases 1 through 4, driven by the experiment configuration file, actively simulating 5 distinct Sarawak regions. The second objective was to evaluate economic and operational performance using statistical analyses and sensitivity sweeps, while delivering an interactive dashboard. This was also achieved, as statistical validity was verified via paired t tests, robustness was mapped via  and  sweeps, and the results were effectively visualized via a Streamlit interface.
+
+Limitations
+Data and Labels
+The simulation relies on archived historical weather CSV files rather than a live Numerical Weather Prediction feed. Consequently, the forecast noise module acts as a stylized error model that simulates uncertainty, but it cannot perfectly emulate the complex physical errors generated by actual meteorological forecasting centers. Additionally, the photovoltaic generation truth is model generated via pvlib rather than sourced from physical inverter telemetry.
+Load and Dwelling
+Household energy demand was generated entirely synthetically. While parameterized with typical diurnal peaks and stochastic noise, these mathematically reproducible loads do not capture the unpredictable behavioral spikes and demographic diversity found in measured smart meter data from real Malaysian households.
+Hardware and Tariff Generality
+The system evaluated a single nominal hardware setup comprising a 5 kWp photovoltaic capacity, a 10 kWh battery, a 5 kW inverter limit, and a 0.95 round trip efficiency across all regions to strictly isolate the impact of local climate variability. Furthermore, the Time of Use economic model is a simplified framework assuming zero financial compensation for grid exported energy, thereby restricting the evaluation to an import reduction exercise rather than full retail bill modeling.
+Machine Learning
+While the forecasting models exhibited exceptionally high  values, this hourly accuracy can be misleading because the operational policy ultimately hinges on aggregate daily energy crossing the  threshold, not flawless curve tracking. Furthermore, due to computational scalability tradeoffs, the Support Vector Regression grid search was restricted to an 8,000 row chronologically spaced subsample before refitting to the full dataset.
+Software Scope
+The scope of this project is strictly confined to a digital twin software simulation. It does not incorporate the physical complexities of a localized Battery Management System, communication latency, grid compliance codes, or electrochemical cell degradation over time.
+
+Future Work
+To build upon the foundation established in this repository, several natural extensions are recommended. First, the integration of real load profiles could replace the synthetic load generator with measured smart meter datasets to validate the conservation logic against true stochastic human behavior. Second, archival day ahead forecast integration could substitute the synthetic noise injection model with actual archival day ahead numerical weather prediction data or established bias statistics to evaluate the algorithms under true meteorological prediction conditions. Third, lagged feature retraining is suggested to retrain the regressors strictly utilizing lagged or forecast era inputs, preventing the model from learning to invert same day physical constraints. Fourth, regarding hardware and tariff sweeps, the continuous evaluation orchestrator could be expanded to iterate through varying equipment sizes and dynamic feed in tariff scenarios. Fifth, algorithmic expansion could introduce additional algorithms, such as gradient boosting or lightweight neural networks, adhering to the established simulation pipeline contract to determine if more complex architectures yield tangible operational benefits. Finally, hardware in the loop piloting could bridge the gap between software simulation and field deployment by porting the predictive control logic onto embedded hardware integrated with a physical hybrid inverter for real time validation
+Chapter Closing
+This research successfully designed, validated, and evaluated a reproducible simulation framework for residential energy management in Sarawak. By demonstrating that forecast informed control logic can significantly reduce grid imports during expensive peak windows, the study establishes a mathematically verifiable baseline for smart energy dispatch under dynamic Time of Use structures. While constrained by its simulated nature and synthetic variables, the codebase proves that integrating interpretable AI with deterministic safety rules provides tangible economic benefits without the need for hardware expansion. The fully documented repository, configuration files, and automated testing artifacts stand as an open, robust foundation for future deployment and research.
+
+
+REFERENCES
+ Abuella, M., & Chowdhury, B. (2017). Solar Power Forecasting Using Support Vector Regression. https://doi.org/10.48550/arxiv.1703.09851   
+Ahmed, S., Ali, A., Ansari, J. A., Qadir, S. A., & Kumar, L. (2025). A comprehensive review of solar photovoltaic systems: Scope, technologies, applications, progress, challenges, and recommendations. IEEE Access, 13, 69723–69750. https://doi.org/10.1109/ACCESS.2025.3558539
+Annapareddy, V. N. (2025). Harnessing AI Neural Networks and Generative AI for Optimized Solar Energy Production and Residential Battery Storage Management. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.5203702 
+Babu, R. M., Islam, M. S., & Basher, E. (2025). Forecasting and optimization of a residential off-grid solar photovoltaic-battery energy storage system. Ecological Engineering & Environmental Technology, 26(9), 109–120. https://doi.org/10.12912/27197050/209482 
+Becchi, L., Belloni, E., Bindi, M., Intravaia, M., Grasso, F., Lozito, G. M., & Piccirilli, M. C. (2024). A Computationally Efficient Rule-Based Scheduling Algorithm for Battery Energy Storage Systems. Sustainability, 16(23), 10313–10313. https://doi.org/10.3390/su162310313 
+Cerqueira, V., Torgo, L., & Mozetič, I. (2020). Evaluating time series forecasting models: An empirical study on performance estimation methods. Machine Learning, 109(11), 1997-2028.
+
+
+Chai, T., & Draxler, R. R. (2014). Root mean square error (RMSE) or mean absolute error (MAE)? – Arguments against avoiding RMSE in the literature. Geoscientific Model Development, 7(3), 1247–1250. https://doi.org/10.5194/gmd-7-1247-2014 
+Chong, S. E., Gan, C. K., Chin, A. S. Y., Ajan, C. W., Bealt, J., Shaw, D., & Shahab, S. M. F. (2020). Electricity consumption of remote villages in Sarawak powered by off-grid solar system. 2020 International Conference on Smart Grids and Energy Systems (SGES), 633–638. https://doi.org/10.1109/SGES51519.2020.00118
+Gabr, A. Z., Helal, A. A., & Abbasy, N. H. (2020). The viability of battery storage for residential photovoltaic system in Egypt under different incentive policies. International Transactions on Electrical Energy Systems, 31(2). https://doi.org/10.1002/2050-7038.12741 
+Hossain, J., Kadir, A. F. A., Shareef, H., Manojkumar, R., Saeed, N., & Hanafi, A. N. (2023). A Grid-Connected Optimal Hybrid PV-BES System Sizing for Malaysian Commercial Buildings. Sustainability, 15(13), 10564. https://doi.org/10.3390/su151310564 
+Ihor. (2021, September 30). The Agile Software Development Life Cycle: All You Need to Know. DistantJob - Remote Recruitment Agency. https://distantjob.com/blog/agile-software-development-life-cycle/
+Ledmaoui, Y., Maghraoui, A. E., Aroussi, M. E., Saadane, R., Chebak, A., & Chehri, A. (2023). Forecasting solar energy production: A comparative study of machine learning algorithms. Energy Reports, 10, 1004–1012. https://doi.org/10.1016/j.egyr.2023.07.042 
+
+León Gómez, J. C., De León Aldaco, S. E., & Aguayo Alquicira, J. (2023). A Review of Hybrid Renewable Energy Systems: Architectures, Battery Systems, and Optimization Techniques. Eng, 4(2), 1446–1467. https://doi.org/10.3390/eng4020084 
+Liu, X., & Gou, Z. (2025). Optimizing Photovoltaic-Storage Building Energy Systems: A Comparative Study of Rule-Based and Reinforcement Learning Control for Grid Stability and Self-Consumption. Journal of Physics Conference Series, 3001(1), 012030–012030. https://doi.org/10.1088/1742-6596/3001/1/012030 
+Long, H., Zhang, Z., & Su, Y. (2014). Analysis of daily solar power prediction with data-driven approaches. Applied Energy, 126, 29–37. https://doi.org/10.1016/j.apenergy.2014.03.084 
+Luthander, R., Widén, J., Nilsson, D., & Palm, J. (2015). Photovoltaic self-consumption in buildings: A review. Applied Energy, 142, 80–94. https://doi.org/10.1016/j.apenergy.2014.12.028 
+Mahjabeen, F., & Mohammad, A. (2023). Revolutionizing solar energy: The impact of artificial intelligence on photovoltaic systems. International Journal of Multidisciplinary Sciences and Arts, 2(3). https://doi.org/10.47709/ijmdsa.v2i1.2599
+Memon, S. A., Upadhyay, D. S., & Patel, R. N. (2023). Optimization of solar and battery-based hybrid renewable energy system augmented with bioenergy and hydro energy-based dispatchable source. iScience, 26(1), 105821. https://doi.org/10.1016/j.isci.2022.105821
+Mulleriyawage, U. G. K., & Shen, W. X. (2020). Optimally sizing of battery energy storage capacity by operational optimization of residential PV-Battery systems: An Australian household case study. Renewable Energy. https://doi.org/10.1016/j.renene.2020.07.022 
+Muzmar, M. A. R., Abdullah, M. P., Hassan, M. Y., & Hussin, F. (2015). Time of use pricing for residential customers case of Malaysia. 2015 IEEE Student Conference on Research and Development (SCOReD), 589–593. https://doi.org/10.1109/SCORED.2015.7449404
+Notton, G., Nivet, M.-L., Voyant, C., Paoli, C., Darras, C., Motte, F., & Fouilloy, A. (2018). Intermittent and stochastic character of renewable energy sources: Consequences, cost of intermittence and benefit of forecasting. Renewable and Sustainable Energy Reviews, 87(1), 96–105. https://doi.org/10.1016/j.rser.2018.02.007 
+Notton, G., Voyant, C., Fouilloy, A., Duchaud, J. L., & Nivet, M. L. (2019). Some Applications of ANN to Solar Radiation Estimation and Forecasting for Energy Applications. Applied Sciences, 9(1), 209. https://doi.org/10.3390/app9010209 
+Ouedraogo, I., Defourny, P., & Vanclooster, M. (2019). Application of random forest regression and comparison of its performance to multiple linear regression in modeling groundwater nitrate concentration at the African continent scale. Hydrogeology Journal, 27(3), 1081–1098. https://doi.org/10.1007/s10040-018-1900-5
+Pan, X., Khezri, R., Mahmoudi, A., & Muyeen, S. (2022). Optimal planning of solar PV and battery storage with energy management systems for Time‐of‐Use and flat electricity tariffs. IET Renewable Power Generation. https://doi.org/10.1049/rpg2.12433 
+Ramli, M. S. (2025). Understanding And Simulating TNB’s 2025 New Electricity Tariffs For Domestic Use And Its Impact On Vulnerable Domestic Households. https://doi.org/10.2139/ssrn.5340012  
+Saltelli, A., Ratto, M., Andres, T., Campolongo, F., Cariboni, J., Gatelli, D., ... & Tarantola, S. (2008). Global sensitivity analysis: the primer. John Wiley & Sons.
+Sarawak Energy. (n.d.). Tariffs. Retrieved December 9, 2025, from https://www.sarawakenergy.com/customers/tariffs 
+Sharma, A., & Singh, G. (2018). Optimal Site Selection and Efficiency for Solar PV Power Plant. International Journal of Advance Research and Innovation, 6(1), 15–26. https://doi.org/10.51976/ijari.611804 
+Singh, G. K. (2013). Solar Power Generation by PV (photovoltaic) technology: a Review. Energy, 53(0360-5442), 1–13. https://doi.org/10.1016/j.energy.2013.02.057 
+Soo, C. Y., Chan, X. H., Wan Mokhtar, W. M. H., & Mohd Rais, A. R. (2025). Assessing solar radiation patterns in Sarawak using measured data and the Hargreaves-Samani model for photovoltaic systems application. Makara Journal of Technology, 29(2), Article 2. https://doi.org/10.7454/mst.v29i2.1713
+Voyant, C., Notton, G., Kalogirou, S., Nivet, M.-L., Paoli, C., Motte, F., & Fouilloy, A. (2017). Machine learning methods for solar radiation forecasting: A review. Renewable Energy, 105, 569–582. https://doi.org/10.1016/j.renene.2016.12.095 
+Wu, T., Chen, H., Wang, Q., & Sun, J. (2018). Comparison analysis on the thermal runaway of lithium-ion battery under two heating modes. Journal of Hazardous Materials, 344, 733–741. https://doi.org/10.1016/j.jhazmat.2017.11.022
+
+APPENDICES

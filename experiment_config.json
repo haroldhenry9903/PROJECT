@@ -3,10 +3,147 @@
     "phase1_processed_csv": "data/processed/sarawak_weather_processed.csv",
     "baseline_results_csv": "baseline_simulation_results.csv",
     "smart_results_csv": "smart_simulation_results.csv",
-    "rf_model_path": "models/rf_forecast_model.joblib"
+    "rf_model_path": "models/rf_forecast_model.joblib",
+    "raw_multi_region_csv": "swkdataweather.csv",
+    "processed_csv_template": "data/processed/{region}_weather_processed.csv",
+    "cleaned_csv_template": "data/processed/{region}_weather_cleaned.csv",
+    "baseline_results_template": "results/_per_region/{region}_baseline.csv",
+    "smart_results_template": "results/_per_region/{region}_smart_{algo}.csv",
+    "model_template": "models/{algo}_forecast_model_{region}.joblib",
+    "cv_report_template": "models/cv_report_{region}.json",
+    "cv_results_template": "models/cv_results_{algo}_{region}.csv"
+  },
+  "regions": {
+    "raw_multi_csv": "swkdataweather.csv",
+    "active": "kuching",
+    "match_tolerance_deg": 0.02,
+    "list": [
+      {
+        "name": "kuching",
+        "lat": 1.53,
+        "lon": 110.33
+      },
+      {
+        "name": "miri",
+        "lat": 3.72,
+        "lon": 115.48
+      },
+      {
+        "name": "bintulu",
+        "lat": 3.54,
+        "lon": 113.31
+      },
+      {
+        "name": "kapit",
+        "lat": 2.76,
+        "lon": 114.06
+      },
+      {
+        "name": "sri_aman",
+        "lat": 1.23,
+        "lon": 112.00
+      }
+    ]
+  },
+  "models": {
+    "algorithms": [
+      "rf",
+      "svm"
+    ],
+    "cv_splits": 5,
+    "svm_subsample_rows": 8000,
+    "rf_grid": {
+      "n_estimators": [
+        100,
+        200,
+        400
+      ],
+      "max_depth": [
+        null,
+        10,
+        20,
+        30
+      ],
+      "min_samples_split": [
+        2,
+        5,
+        10
+      ],
+      "min_samples_leaf": [
+        1,
+        2,
+        4
+      ]
+    },
+    "svm_grid": {
+      "svr__kernel": [
+        "rbf"
+      ],
+      "svr__C": [
+        0.1,
+        1.0,
+        10.0,
+        100.0
+      ],
+      "svr__gamma": [
+        "scale",
+        0.01,
+        0.1
+      ],
+      "svr__epsilon": [
+        0.01,
+        0.1,
+        0.5
+      ]
+    },
+    "learning_curve_train_sizes": [
+      0.1,
+      0.28,
+      0.46,
+      0.64,
+      0.82,
+      1.0
+    ],
+    "validation_curve_rf_param": "max_depth",
+    "validation_curve_rf_range": [
+      5,
+      10,
+      15,
+      20,
+      25,
+      30,
+      40
+    ],
+    "validation_curve_svm_param": "svr__C",
+    "validation_curve_svm_range": [
+      0.1,
+      1.0,
+      10.0,
+      100.0
+    ]
   },
   "seed": {
-    "numpy_seed": 42
+    "numpy_seed": 42,
+    "forecast_seed": 1337
+  },
+  "forecast": {
+    "enabled": true,
+    "ghi_noise_sigma": 0.20,
+    "ghi_bias": 0.0,
+    "cloudcover_noise_sigma": 0.10,
+    "temp_noise_sigma": 1.5,
+    "humidity_noise_sigma": 5.0,
+    "precip_noise_sigma": 0.5,
+    "clip_nonneg": true,
+    "seed": 1337,
+    "sweep_sigmas": [
+      0.00,
+      0.10,
+      0.20,
+      0.30,
+      0.40
+    ],
+    "sweep_seeds": 10
   },
   "battery": {
     "capacity_kwh": 10.0,
@@ -23,7 +160,26 @@
   "controller": {
     "e_crit_kwh": 18.0,
     "soc_reserve": 0.50,
-    "essential_discharge_kw": 0.0
+    "essential_discharge_kw": 0.0,
+    "e_crit_sweep_values": [
+      10.0,
+      11.0,
+      12.0,
+      13.0,
+      14.0,
+      15.0,
+      16.0,
+      17.0,
+      18.0,
+      19.0,
+      20.0,
+      21.0,
+      22.0,
+      23.0,
+      24.0,
+      25.0
+    ],
+    "e_crit_sweep_seeds": 3
   },
   "scenario": {
     "pv_scale": 1.0,
@@ -40,4 +196,3 @@
     "run_phase3_train_model": false
   }
 }
-

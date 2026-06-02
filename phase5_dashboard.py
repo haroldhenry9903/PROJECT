@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -15,6 +16,7 @@ import seaborn as sns
 
 from core_battery_model import Battery
 from phase2_baseline_sim import get_tariff_rate
+from phase4_smart_optimizer import apply_forecast_noise
 from repo_paths import repo_root, resolve_repo_path
 
 
@@ -241,6 +243,71 @@ def render_saved_run_metrics_sidebar(metrics: Dict[str, Any], run_path: Path) ->
             if meta.get("gap_explainer"):
                 st.caption(str(meta["gap_explainer"]))
 
+    _render_forecast_realism_panel(metrics, run_path)
+
+
+def _render_forecast_realism_panel(metrics: Dict[str, Any], run_path: Path) -> None:
+    """Sidebar expander surfacing `_meta.forecast` plus a 2-line summary
+    derived from `forecast_sensitivity.csv` (if present in the run folder).
+
+    Legacy runs that lack these keys/files render gracefully instead of
+    erroring out, so old `results/...` folders still work.
+    """
+    meta = metrics.get("_meta") if isinstance(metrics.get("_meta"), dict) else {}
+    forecast_block = meta.get("forecast") if isinstance(meta.get("forecast"), dict) else None
+    note = meta.get("note_perfect_foresight_disabled")
+
+    with st.sidebar.expander("Forecast realism (σ used for the headline)", expanded=False):
+        if forecast_block is None and not note:
+            st.info(
+                "This run pre-dates the forecast-realism panel. Re-run "
+                "`python run_all.py` with the latest `experiment_config.json` "
+                "to populate `_meta.forecast` and the σ-sensitivity sweep."
+            )
+            return
+
+        if forecast_block:
+            try:
+                st.code(json.dumps(forecast_block, indent=2), language="json")
+            except Exception:
+                st.write(forecast_block)
+
+        if note:
+            st.caption(str(note))
+
+        # Optional: 2-line summary of the σ-sweep, if the CSV exists.
+        sweep_csv = run_path / "forecast_sensitivity.csv"
+        if sweep_csv.exists():
+            try:
+                df_sweep = pd.read_csv(sweep_csv)
+            except Exception:
+                df_sweep = None
+            if df_sweep is not None and len(df_sweep) > 0 and "ghi_sigma" in df_sweep.columns:
+                df_sweep = df_sweep.sort_values("ghi_sigma").reset_index(drop=True)
+                # σ=0 row = perfect-foresight upper bound
+                row_zero = df_sweep.iloc[df_sweep["ghi_sigma"].astype(float).abs().idxmin()]
+                # Row whose σ matches the headline's active σ
+                active_sigma = float(forecast_block.get("ghi_noise_sigma", 0.20)) if forecast_block else 0.20
+                row_active_idx = (df_sweep["ghi_sigma"].astype(float) - active_sigma).abs().idxmin()
+                row_active = df_sweep.iloc[row_active_idx]
+                upper = float(row_zero.get("total_savings_rm", float("nan")))
+                headline = float(row_active.get("total_savings_rm", float("nan")))
+                gap = upper - headline
+                gap_pct = (100.0 * gap / upper) if upper not in (0.0, float("nan")) else float("nan")
+                st.markdown(
+                    f"**Perfect-foresight (σ=0):** {upper:.2f} RM  \n"
+                    f"**Headline (σ={active_sigma:.2f}):** {headline:.2f} RM  \n"
+                    f"**Gap:** {gap:.2f} RM ({gap_pct:.1f}%) — cost of realistic forecast error."
+                )
+                # Optional std hint when present
+                if "total_savings_rm_std" in df_sweep.columns:
+                    std_active = float(row_active.get("total_savings_rm_std", 0.0))
+                    n_seeds = int(row_active.get("n_seeds", 1)) if "n_seeds" in df_sweep.columns else 1
+                    st.caption(
+                        f"Spread across {n_seeds} seed{'s' if n_seeds != 1 else ''}: "
+                        f"std={std_active:.2f} RM."
+                    )
+
 
 # -----------------------------
 # Config + data + model loading
@@ -254,10 +321,22 @@ def load_json(path: str) -> dict:
         return {}
 
 
+_RUN_NAME_PATTERN = re.compile(r"^\d{8}_\d{4}$")
+
+
 def _list_results_runs(results_root: Path) -> list[Path]:
+    """Return only timestamped run directories under `results/`.
+
+    Run folders are named ``YYYYMMDD_HHMM`` by ``run_all.py``. Anything else
+    (e.g. the sibling ``_per_region/`` cache or ad-hoc subfolders) is skipped
+    so they never appear in the dashboard's run picker.
+    """
     if not results_root.exists():
         return []
-    runs = [p for p in results_root.iterdir() if p.is_dir()]
+    runs = [
+        p for p in results_root.iterdir()
+        if p.is_dir() and _RUN_NAME_PATTERN.match(p.name)
+    ]
     runs.sort(key=lambda p: p.name)
     return runs
 
@@ -304,6 +383,13 @@ CONFIG_PATH_DEFAULT = "experiment_config.json"
 _repo = repo_root()
 cfg = load_json(str(_repo / CONFIG_PATH_DEFAULT))
 
+# Active forecast-error block resolved once at startup. The Tab 2 RF-fallback
+# uses this to perturb features before predicting, so that the dashboard
+# inherits the same perfect-foresight loophole fix that Phase 4 has. When the
+# config has no `forecast` block, this stays empty and the fallback behaves
+# exactly as before (legacy oracular path).
+_FORECAST_CFG: Dict[str, Any] = cfg.get("forecast", {}) if isinstance(cfg, dict) else {}
+
 results_root = _repo / "results"
 
 st.sidebar.header("Simulation Controls")
@@ -317,7 +403,7 @@ st.sidebar.toggle(
     help=HELP["guided_help_toggle"],
 )
 
-st.sidebar.caption("Full thesis-style notes also live in `PROJECT_EXPLANATION_DETAILED.md` (repo file).")
+st.sidebar.caption("Full thesis-style notes also live in `docs/PROJECT_EXPLANATION_DETAILED.md` (repo file).")
 
 with st.sidebar.expander("Experiment Settings (from config)", expanded=False):
     st.caption(f"Config path: `{_repo / CONFIG_PATH_DEFAULT}`")
@@ -333,6 +419,36 @@ section_help(
 - **Why it matters**: this is what you cite in your thesis as “experimental parameters”.
 - **Not the same as sliders**: sidebar sliders are for interactive what-if exploration unless you regenerate CSVs to match.
 """,
+)
+
+paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+
+# ----- Region + algorithm selectors (multi-region + RF-vs-SVM thesis update)
+# The list of regions and algorithms is sourced from `experiment_config.json`
+# so adding a new region is a config-only change. The defaults match
+# `regions.active` and `models.algorithms[0]` so a fresh dashboard load lands
+# on a known-good combination.
+_regions_list = list((cfg.get("regions", {}) or {}).get("list", [])) if isinstance(cfg, dict) else []
+_region_names = [r["name"] for r in _regions_list] or ["kuching"]
+_default_region = str((cfg.get("regions", {}) or {}).get("active", _region_names[0])) if isinstance(cfg, dict) else _region_names[0]
+_algos_list = list((cfg.get("models", {}) or {}).get("algorithms", ["rf"])) if isinstance(cfg, dict) else ["rf"]
+
+st.sidebar.subheader("Region & forecast model")
+st.sidebar.caption(
+    "Pick one of the 5 Sarawak regions and one of the trained forecasters. "
+    "Every downstream chart, metric and CSV path is recomputed for this selection."
+)
+selected_region = st.sidebar.selectbox(
+    "Region",
+    _region_names,
+    index=(_region_names.index(_default_region) if _default_region in _region_names else 0),
+    help="The 5 regions share the same load profile but have different solar resource per pvlib.",
+)
+selected_algo = st.sidebar.selectbox(
+    "Forecast model",
+    _algos_list,
+    index=0,
+    help="rf = Random Forest, svm = Support Vector Regression (RBF kernel + StandardScaler).",
 )
 
 use_results_run = st.sidebar.toggle(
@@ -353,39 +469,82 @@ if use_results_run:
             help=HELP["results_run_select"],
         )
         selected_run = results_root / pick
-        st.sidebar.caption("Tip: this makes the dashboard match `daily_results.csv` and `metrics.json` from that run.")
+        st.sidebar.caption(
+            f"Tip: this makes the dashboard match "
+            f"`results/{pick}/{selected_region}/{selected_algo}/`."
+        )
     else:
         st.sidebar.warning("No `results/` runs found. Run `python run_all.py` first.")
         use_results_run = False
 
-paths_cfg = cfg.get("paths", {}) if isinstance(cfg, dict) else {}
+
+def _per_region_path(template_key: str, default_relative: str, **fmt) -> str:
+    """Resolve a per-(region, algo) path from `paths.*_template` if available,
+    else from the flat single-region key (`default_relative` is the flat key)."""
+    tpl = paths_cfg.get(template_key)
+    if tpl:
+        return str(resolve_repo_path(_repo, tpl.format(**fmt)))
+    return str(resolve_repo_path(_repo, paths_cfg.get(default_relative, default_relative)))
+
+
 if selected_run:
-    base_csv_path = str(selected_run / "baseline_simulation_results.csv")
-    smart_csv_path = str(selected_run / "smart_simulation_results.csv")
+    # When viewing a saved run, the per-(region, algo) artefacts live in
+    # results/<stamp>/{region}/{algo}/.
+    _run_region_dir = selected_run / selected_region / selected_algo
+    if not _run_region_dir.exists():
+        # Backward-compat: pre-multi-region runs only have a flat results/<stamp>/.
+        # Fall back to those so old timestamps still render.
+        st.sidebar.warning(
+            f"Run `{selected_run.name}` has no `{selected_region}/{selected_algo}/` subfolder; "
+            "falling back to the flat saved-run layout."
+        )
+        base_csv_path = str(selected_run / "baseline_simulation_results.csv")
+        smart_csv_path = str(selected_run / "smart_simulation_results.csv")
+        active_run_dir = selected_run
+    else:
+        base_csv_path = str(_run_region_dir / "baseline_simulation_results.csv")
+        smart_csv_path = str(_run_region_dir / "smart_simulation_results.csv")
+        active_run_dir = _run_region_dir
 else:
-    base_csv_path = str(
-        resolve_repo_path(_repo, paths_cfg.get("baseline_results_csv", "baseline_simulation_results.csv"))
+    # Live (non-saved-run) mode: read the most recent per-region CSVs.
+    base_csv_path = _per_region_path(
+        "baseline_results_template", "baseline_results_csv",
+        region=selected_region, algo=selected_algo,
     )
-    smart_csv_path = str(
-        resolve_repo_path(_repo, paths_cfg.get("smart_results_csv", "smart_simulation_results.csv"))
+    smart_csv_path = _per_region_path(
+        "smart_results_template", "smart_results_csv",
+        region=selected_region, algo=selected_algo,
     )
+    active_run_dir = None  # used by Tab 4 to locate metrics.json + sweep CSVs
 
 df_base, df_smart = load_simulation_csvs(base_csv_path, smart_csv_path)
 
-model_path = str(resolve_repo_path(_repo, paths_cfg.get("rf_model_path", "models/rf_forecast_model.joblib")))
+# Per-(region, algo) forecaster. Falls back to the legacy single-file path
+# if templates aren't configured.
+model_path = _per_region_path(
+    "model_template", "rf_model_path",
+    region=selected_region, algo=selected_algo,
+)
 rf_model = try_load_forecast_model(model_path)
 
-# Optional saved evaluation artifacts (only present for run_all.py runs)
+# Optional saved evaluation artifacts (only present for run_all.py runs).
+# When the multi-region layout is present we prefer the per-(region, algo)
+# subfolder; otherwise we fall back to the flat results/<stamp>/.
 saved_daily_results: Optional[pd.DataFrame] = None
 saved_metrics: Optional[dict] = None
 if selected_run is not None:
     try:
-        daily_csv = selected_run / "daily_results.csv"
-        metrics_json = selected_run / "metrics.json"
-        if daily_csv.exists():
-            saved_daily_results = pd.read_csv(daily_csv)
-        if metrics_json.exists():
-            saved_metrics = json.loads(metrics_json.read_text(encoding="utf-8"))
+        candidate_dirs = []
+        if active_run_dir is not None:
+            candidate_dirs.append(active_run_dir)
+        candidate_dirs.append(selected_run)
+        for candidate in candidate_dirs:
+            daily_csv = candidate / "daily_results.csv"
+            metrics_json = candidate / "metrics.json"
+            if daily_csv.exists() and saved_daily_results is None:
+                saved_daily_results = pd.read_csv(daily_csv)
+            if metrics_json.exists() and saved_metrics is None:
+                saved_metrics = json.loads(metrics_json.read_text(encoding="utf-8"))
     except Exception:
         saved_daily_results = None
         saved_metrics = None
@@ -608,7 +767,22 @@ def decide_conservation_mode_for_day(
         return False, "missing_features_for_forecast", None
 
     try:
-        preds = rf_model.predict(df_day[features])  # type: ignore[attr-defined]
+        # Closes the Tab 2 mini-loophole: when the active config enables the
+        # forecast-error model, perturb the next-24h features BEFORE asking
+        # the RF for E_pred. The RNG is seeded deterministically from the
+        # selected calendar date XOR the configured forecast seed so clicking
+        # "Run" twice on the same day reproduces the same prediction.
+        X = df_day[features]
+        forecast_cfg = _FORECAST_CFG
+        if isinstance(forecast_cfg, dict) and bool(forecast_cfg.get("enabled", False)):
+            try:
+                day_anchor = pd.Timestamp(df_day.index[0])
+            except Exception:
+                day_anchor = pd.Timestamp("2000-01-01")
+            seed = int(day_anchor.toordinal()) ^ int(forecast_cfg.get("seed", 1337))
+            rng = np.random.default_rng(seed)
+            X = apply_forecast_noise(X, forecast_cfg=forecast_cfg, rng=rng)
+        preds = rf_model.predict(X)  # type: ignore[attr-defined]
         e_pred = float(np.sum(preds))
         return (e_pred < params.e_crit_kwh), "rf_forecast", e_pred
     except Exception:
@@ -1671,20 +1845,157 @@ This tab answers three questions:\n
 # Tab 4: Model metrics
 # -----------------------------
 with tab4:
+    # Dynamic tab title — surfaces the active region + algo selection so a
+    # screenshot taken from this tab is self-describing for the thesis.
+    st.markdown(
+        f"## AI-Predicted Solar — Sarawak: **{selected_region.replace('_',' ').title()}** "
+        f"({selected_algo.upper()})"
+    )
     explain_tab_header(
         "tab4",
         "Explain Tab 4",
         """
 ### What this tab does
-Sanity-check the PV forecast model used to compute \\(E_{pred}\\) for Conservation Mode.
+1. Compare **Random Forest** vs **SVM** for the selected region (CV + held-out test metrics).
+2. Show the **training process** (learning curves, validation curves, per-fold scores).
+3. Surface the **validation formulas** that prove the simulation is internally consistent.
+4. Report **statistical tests** (Wilcoxon, paired t-test) on daily savings.
 
 ### Honesty / limits
-- These metrics are **offline accuracy** on a historical test window; they are not a guarantee of future performance.\n
-- A better/worse RMSE here does not automatically equal better/worse electricity bills—dispatch and tariffs matter too.\n
+- These metrics are **offline accuracy** on a historical test window; they are not a guarantee of future performance.
+- A better/worse RMSE here does not automatically equal better/worse electricity bills—dispatch and tariffs matter too.
 """,
     )
 
-    st.subheader("Forecasting model accuracy (R², RMSE)")
+    # ----------------------------------------------------------------
+    # Section 1 — Model comparison table (RF vs SVM for this region)
+    # ----------------------------------------------------------------
+    st.subheader("1. Model comparison — Random Forest vs SVM")
+    st.caption(
+        "Sourced from `models/cv_report_{region}.json` produced by `phase3_ai_training.py`. "
+        "All metrics use a chronological 5-fold `TimeSeriesSplit` (no shuffling — chronological data)."
+    )
+    cv_report_tpl = paths_cfg.get("cv_report_template", "models/cv_report_{region}.json")
+    cv_report_path = resolve_repo_path(_repo, cv_report_tpl.format(region=selected_region))
+    cv_report_payload: Optional[dict] = None
+    if cv_report_path.exists():
+        try:
+            cv_report_payload = json.loads(cv_report_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            st.warning(f"Could not parse `{cv_report_path.name}`: {exc}")
+
+    best_algo_for_region: Optional[str] = None
+    if cv_report_payload is None:
+        st.info(
+            f"No CV report at `{cv_report_path}`. Train both models with "
+            f"`python phase3_ai_training.py --region {selected_region}` to populate this view."
+        )
+    else:
+        rows: List[Dict[str, Any]] = []
+        for algo_name, block in (cv_report_payload.get("algorithms", {}) or {}).items():
+            rows.append({
+                "algo": algo_name,
+                "cv_rmse_mean (kW)": float(block.get("cv_rmse_mean", float("nan"))),
+                "cv_rmse_std (kW)": float(block.get("cv_rmse_std", float("nan"))),
+                "test_rmse (kW)": float(block.get("test_rmse", float("nan"))),
+                "test_mae (kW)": float(block.get("test_mae", float("nan"))),
+                "test_R²": float(block.get("test_r2", float("nan"))),
+                "test_MAPE (%)": float(block.get("test_mape", float("nan"))),
+                "best_params": json.dumps(block.get("best_params", {}), separators=(",", ":")),
+                "n_train_full": int(block.get("n_train_full", 0)),
+                "n_train_used_for_gridsearch": int(block.get("n_train_used_for_gridsearch", 0)),
+            })
+        if rows:
+            df_models = pd.DataFrame(rows).set_index("algo").round(4)
+            st.dataframe(df_models, width="stretch")
+            # Pick the row with the lowest test_rmse as the verdict.
+            try:
+                best_algo_for_region = df_models["test_rmse (kW)"].astype(float).idxmin()
+            except Exception:
+                best_algo_for_region = None
+
+    # ----------------------------------------------------------------
+    # Section 2 — Verdict line (argmin test_rmse for this region)
+    # ----------------------------------------------------------------
+    if best_algo_for_region is not None:
+        verdict_msg = (
+            f"**Best forecaster for {selected_region.replace('_',' ').title()}**: "
+            f"`{best_algo_for_region}` (lowest held-out test RMSE)."
+        )
+        if best_algo_for_region == selected_algo:
+            st.success(verdict_msg + " You are currently viewing this winner.")
+        else:
+            st.info(
+                verdict_msg
+                + f" You are currently viewing `{selected_algo}`. "
+                  "Switch the sidebar selector to see the recommended model."
+            )
+
+    # ----------------------------------------------------------------
+    # Section 3 — Training process figures (learning + validation curves)
+    # ----------------------------------------------------------------
+    st.divider()
+    st.subheader("2. Training process")
+    st.caption(
+        "Learning curve = how the train-RMSE and CV-RMSE evolve as we feed the model more rows. "
+        "A growing gap = high variance (overfitting). A high plateau = high bias (underfit)."
+    )
+    figures_training_dir = resolve_repo_path(_repo, f"figures/training/{selected_region}")
+    rf_lc = figures_training_dir / "rf_learning_curve.png"
+    svm_lc = figures_training_dir / "svm_learning_curve.png"
+    rf_vc = figures_training_dir / "rf_validation_curve.png"
+    svm_vc = figures_training_dir / "svm_validation_curve.png"
+    rf_fb = figures_training_dir / "rf_fold_scores.png"
+    svm_fb = figures_training_dir / "svm_fold_scores.png"
+    compare_png = figures_training_dir / f"compare_{selected_region}.png"
+
+    if not figures_training_dir.exists():
+        st.info(
+            f"No training figures at `{figures_training_dir}`. "
+            f"Re-run `python phase3_ai_training.py --region {selected_region}` "
+            "to generate learning/validation/per-fold curves for this region."
+        )
+    else:
+        if compare_png.exists():
+            st.markdown("**RF vs SVM learning curves (CV RMSE)** — same axes, lower is better.")
+            st.image(str(compare_png), width="stretch")
+
+        col_l, col_r = st.columns(2)
+        with col_l:
+            st.markdown("**Learning curve — RF**")
+            if rf_lc.exists():
+                st.image(str(rf_lc), width="stretch")
+            else:
+                st.caption(f"missing: `{rf_lc.name}`")
+            st.markdown("**Validation curve — RF (`max_depth`)**")
+            if rf_vc.exists():
+                st.image(str(rf_vc), width="stretch")
+            else:
+                st.caption(f"missing: `{rf_vc.name}`")
+            st.markdown("**5-fold CV scores — RF**")
+            if rf_fb.exists():
+                st.image(str(rf_fb), width="stretch")
+            else:
+                st.caption(f"missing: `{rf_fb.name}`")
+        with col_r:
+            st.markdown("**Learning curve — SVM**")
+            if svm_lc.exists():
+                st.image(str(svm_lc), width="stretch")
+            else:
+                st.caption(f"missing: `{svm_lc.name}`")
+            st.markdown("**Validation curve — SVM (`svr__C`)**")
+            if svm_vc.exists():
+                st.image(str(svm_vc), width="stretch")
+            else:
+                st.caption(f"missing: `{svm_vc.name}`")
+            st.markdown("**5-fold CV scores — SVM**")
+            if svm_fb.exists():
+                st.image(str(svm_fb), width="stretch")
+            else:
+                st.caption(f"missing: `{svm_fb.name}`")
+
+    st.divider()
+    st.subheader("3. Forecasting model accuracy on the held-out window")
     st.caption("Evaluated chronologically on the test window used in your report (Aug 2024 → Jan 2025).")
     st.markdown(
         """
@@ -1705,7 +2016,11 @@ If the forecast is inaccurate, the controller may activate Conservation Mode on 
     )
 
     if rf_model is None:
-        st.warning("`models/rf_forecast_model.joblib` (or configured `paths.rf_model_path`) not found or could not be loaded. Model metrics tab is disabled.")
+        st.warning(
+            f"Forecaster `{model_path}` not found or could not be loaded. "
+            f"Model metrics tab is disabled. Train it via "
+            f"`python phase3_ai_training.py --region {selected_region} --algo {selected_algo}`."
+        )
     else:
         features = ["ghiradiation", "temp", "humidity", "precip", "cloudcover", "hour", "month"]
         missing = [c for c in features + ["Target_Power_kW"] if c not in df_base.columns]
@@ -1767,3 +2082,203 @@ If the forecast is inaccurate, the controller may activate Conservation Mode on 
 - Long tails mean occasional **large miss-forecasts**—those are the risky days for Conservation Mode decisions.\n
 """,
                 )
+
+    # ----------------------------------------------------------------
+    # Section 5 — Simulation validation card (formulas + tolerances)
+    # ----------------------------------------------------------------
+    st.divider()
+    st.subheader("4. Simulation validation")
+    st.caption(
+        "Every `run_all.py` invocation re-checks these identities for "
+        "every hourly row of the chosen region. See `docs/VALIDATION.md` for the full derivation."
+    )
+
+    st.markdown("**Energy balance (must hold every hour):**")
+    st.latex(r"P_{\text{net}}(t) \;=\; P_{\text{load}}(t) - P_{\text{pv}}(t)")
+    st.latex(r"P_{\text{grid,import}}(t) \;=\; \max\!\bigl(0,\, P_{\text{net}}(t) - P_{\text{batt}}(t)\bigr)")
+    st.markdown("**Tariff–cost identity (must hold every hour):**")
+    st.latex(
+        r"\mathrm{Cost}_{\text{hour}}(t) \;=\; P_{\text{grid,import}}(t)\,\tau(h_t)"
+        r"\quad\text{with}\quad \tau(h_t)\in\{\tau_{\text{peak}},\;\tau_{\text{offpeak}}\}"
+    )
+
+    tariff_block: Dict[str, Any] = {}
+    energy_balance_max: Optional[float] = None
+    if isinstance(saved_metrics, dict):
+        meta = saved_metrics.get("_meta", {}) or {}
+        validation = meta.get("validation", {}) or {}
+        tariff_block = validation.get("tariff_cost_identity", {}) or {
+            "tariff_cost_identity_max_abs_err": validation.get("tariff_cost_identity_max_abs_err"),
+            "tariff_cost_identity_passed": validation.get("tariff_cost_identity_passed"),
+            "samples_checked": validation.get("samples_checked"),
+        }
+        energy_balance_max = validation.get("energy_balance_max_abs_err")
+
+    cV1, cV2, cV3 = st.columns(3)
+    tariff_max = tariff_block.get("tariff_cost_identity_max_abs_err")
+    tariff_pass = tariff_block.get("tariff_cost_identity_passed")
+    cV1.metric(
+        "Tariff identity |err|",
+        f"{tariff_max:.2e}" if isinstance(tariff_max, (int, float)) else "—",
+        "PASS ≤ 1e-5" if tariff_pass else "needs run_all.py" if tariff_pass is None else "FAIL",
+    )
+    cV2.metric(
+        "Energy-balance |err|",
+        f"{energy_balance_max:.2e}" if isinstance(energy_balance_max, (int, float)) else "—",
+        "PASS ≤ 1e-6" if isinstance(energy_balance_max, (int, float)) and energy_balance_max <= 1e-6 else "—",
+    )
+    cV3.metric(
+        "Samples checked",
+        f"{int(tariff_block.get('samples_checked', 0)):,}" if tariff_block.get("samples_checked") else "—",
+    )
+    if tariff_pass is None and energy_balance_max is None:
+        st.caption(
+            "Load a saved `results/<stamp>/` run from the sidebar to populate this card. "
+            "These numbers are written by `run_all.py:validate_*` (see `docs/VALIDATION.md`)."
+        )
+
+    # ----------------------------------------------------------------
+    # Section 5 — Statistical tests (Wilcoxon + paired-t; oracle % only if finite)
+    # ----------------------------------------------------------------
+    st.divider()
+    st.subheader("5. Statistical evaluation — does AI beat baseline?")
+    stats_block: Dict[str, Any] = {}
+    if isinstance(saved_metrics, dict):
+        stats_block = saved_metrics.get("statistical_tests", {}) or {}
+
+    wilcoxon_block = stats_block.get("wilcoxon_signed_rank", {})
+    paired_t_block = stats_block.get("paired_t_test", {})
+    pct_oracle = stats_block.get("pct_of_perfect_foresight_ceiling")
+    try:
+        _oracle_finite = math.isfinite(float(pct_oracle))
+    except (TypeError, ValueError):
+        _oracle_finite = False
+
+    if _oracle_finite:
+        st.caption(
+            "Each calendar day is a paired observation (`baseline_cost_rm` vs `smart_cost_rm`). "
+            "We report a non-parametric and a parametric test, plus the percentage of "
+            "perfect-foresight savings captured (requires a `forecast_sensitivity.csv` run)."
+        )
+    else:
+        st.caption(
+            "Each calendar day is a paired observation (`baseline_cost_rm` vs `smart_cost_rm`). "
+            "We report a non-parametric Wilcoxon signed-rank test and a parametric paired t-test."
+        )
+
+    st.markdown("**Wilcoxon signed-rank (non-parametric):**")
+    st.latex(r"W = \sum_{d=1}^{D} \mathrm{rank}\bigl(|\Delta_d|\bigr)\,\mathrm{sgn}(\Delta_d), \qquad \Delta_d = \mathrm{base}_d - \mathrm{smart}_d")
+    st.markdown("**Paired t-test (parametric):**")
+    st.latex(r"t = \dfrac{\bar{\Delta}}{s_{\Delta}/\sqrt{D}}, \qquad df = D-1")
+
+    if _oracle_finite:
+        cS1, cS2, cS3, cS4 = st.columns(4)
+        cS1.metric(
+            "Wilcoxon p-value",
+            f"{float(wilcoxon_block.get('p_value', float('nan'))):.2e}" if wilcoxon_block else "—",
+            f"n={int(wilcoxon_block.get('n_pairs', 0))}" if wilcoxon_block else "",
+        )
+        cS2.metric(
+            "Paired-t p-value",
+            f"{float(paired_t_block.get('p_value', float('nan'))):.2e}" if paired_t_block else "—",
+            f"t={float(paired_t_block.get('stat', float('nan'))):.2f}" if paired_t_block else "",
+        )
+        cS3.metric(
+            "% of perfect-foresight ceiling",
+            f"{float(pct_oracle):.1f}%",
+            help="100% = controller captured every penny an oracle could (σ=0 row of forecast_sensitivity.csv).",
+        )
+        cS4.metric(
+            "Mean daily saving (RM)",
+            f"{float(stats_block.get('mean_daily_saving_rm', float('nan'))):.3f}" if stats_block else "—",
+            f"σ={float(stats_block.get('std_daily_saving_rm', float('nan'))):.3f}" if stats_block else "",
+        )
+    else:
+        cS1, cS2, cS3 = st.columns(3)
+        cS1.metric(
+            "Wilcoxon p-value",
+            f"{float(wilcoxon_block.get('p_value', float('nan'))):.2e}" if wilcoxon_block else "—",
+            f"n={int(wilcoxon_block.get('n_pairs', 0))}" if wilcoxon_block else "",
+        )
+        cS2.metric(
+            "Paired-t p-value",
+            f"{float(paired_t_block.get('p_value', float('nan'))):.2e}" if paired_t_block else "—",
+            f"t={float(paired_t_block.get('stat', float('nan'))):.2f}" if paired_t_block else "",
+        )
+        cS3.metric(
+            "Mean daily saving (RM)",
+            f"{float(stats_block.get('mean_daily_saving_rm', float('nan'))):.3f}" if stats_block else "—",
+            f"σ={float(stats_block.get('std_daily_saving_rm', float('nan'))):.3f}" if stats_block else "",
+        )
+    if not stats_block:
+        st.caption(
+            "Load a saved `results/<stamp>/` run from the sidebar to populate this card. "
+            "Stats are written by `run_all.py:compute_metrics` (see Step 7 of the update plan)."
+        )
+
+    # ----------------------------------------------------------------
+    # Section 6 — Forecast sensitivity sweep (only when artifacts exist)
+    # ----------------------------------------------------------------
+    _tab4_has_forecast_sweep = False
+    _tab4_sweep_csv: Optional[Path] = None
+    _tab4_sweep_png: Optional[Path] = None
+    if selected_run is not None:
+        _sdirs: list[Path] = []
+        if active_run_dir is not None:
+            _sdirs.append(active_run_dir)
+        _sdirs.append(selected_run)
+        for _cand in _sdirs:
+            _cp = _cand / "forecast_sensitivity.csv"
+            _pp = _cand / "figures" / "forecast_sensitivity.png"
+            if _cp.is_file() or _pp.is_file():
+                _tab4_sweep_csv, _tab4_sweep_png = _cp, _pp
+                _tab4_has_forecast_sweep = True
+                break
+        if not _tab4_has_forecast_sweep:
+            _cp = selected_run / "forecast_sensitivity.csv"
+            _pp = selected_run / "figures" / "forecast_sensitivity.png"
+            if _cp.is_file() or _pp.is_file():
+                _tab4_sweep_csv, _tab4_sweep_png = _cp, _pp
+                _tab4_has_forecast_sweep = True
+
+    if _tab4_has_forecast_sweep:
+        assert _tab4_sweep_csv is not None and _tab4_sweep_png is not None
+        st.divider()
+        st.subheader("6. Forecast sensitivity sweep")
+        st.caption(
+            "How much of the AI savings depends on forecast quality. "
+            "σ=0 reproduces the perfect-foresight upper bound; "
+            "the dashed orange line marks the σ used for the headline run."
+        )
+        sweep_csv = _tab4_sweep_csv
+        sweep_png = _tab4_sweep_png
+        try:
+            df_sweep = pd.read_csv(sweep_csv) if sweep_csv.is_file() else None
+        except Exception as exc:
+            df_sweep = None
+            st.warning(f"Could not read `forecast_sensitivity.csv`: {exc}")
+
+        if df_sweep is not None and len(df_sweep) > 0:
+            preferred_cols = [
+                "ghi_sigma",
+                "n_seeds",
+                "total_savings_rm",
+                "total_savings_rm_std",
+                "total_savings_rm_min",
+                "total_savings_rm_max",
+                "savings_pct_of_baseline",
+                "conservation_days_count",
+                "conservation_days_count_std",
+                "peak_import_reduction_kwh",
+                "peak_import_reduction_kwh_std",
+                "rf_forecast_mape_daily",
+                "rf_forecast_mape_daily_std",
+            ]
+            cols_in_order = [c for c in preferred_cols if c in df_sweep.columns]
+            cols_in_order += [c for c in df_sweep.columns if c not in cols_in_order]
+            st.dataframe(df_sweep[cols_in_order], width="stretch")
+
+        if sweep_png.is_file():
+            st.image(str(sweep_png), width="stretch")
+        else:
+            st.caption("(`forecast_sensitivity.png` missing for this run.)")

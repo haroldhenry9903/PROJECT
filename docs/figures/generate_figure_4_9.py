@@ -169,7 +169,7 @@ def figure_phase1_checklist(out_path: Path) -> None:
     ax.axis("off")
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.text(0.5, 0.95, "Figure 4.14 — Phase 1 data integrity checks (phase1a_data_cleaning.py)", ha="center", fontsize=11, fontweight="bold")
+    ax.text(0.5, 0.95, "Figure 4.14 — Phase 1 data integrity checks (phase1_split_multi_region.py)", ha="center", fontsize=11, fontweight="bold")
 
     rows = [
         ("C1 — Missingness", "Post-clean missing count = 0 (numeric weather columns)."),

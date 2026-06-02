@@ -1,0 +1,68 @@
+{
+  "region": "kapit",
+  "cv_strategy": "TimeSeriesSplit",
+  "cv_splits": 5,
+  "chronological_split_date": "2024-08-08",
+  "features": [
+    "ghiradiation",
+    "temp",
+    "humidity",
+    "precip",
+    "cloudcover",
+    "hour",
+    "month"
+  ],
+  "target": "Target_Power_kW",
+  "algorithms": {
+    "rf": {
+      "best_params": {
+        "max_depth": 20,
+        "min_samples_leaf": 4,
+        "min_samples_split": 2,
+        "n_estimators": 400
+      },
+      "cv_rmse_mean": 0.03424681535444127,
+      "cv_rmse_std": 0.006280301073190049,
+      "cv_fold_scores": [
+        0.04586389710079784,
+        0.03487765481677293,
+        0.028121469737482807,
+        0.029513173490895203,
+        0.03285788162625756
+      ],
+      "test_rmse": 0.026453597042947533,
+      "test_mae": 0.007790811516711531,
+      "test_r2": 0.999469531583143,
+      "test_mape": 2.217627096062822,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 40344,
+      "seconds_elapsed": 1529.4644151999964,
+      "notes": "GridSearchCV used the full training window."
+    },
+    "svm": {
+      "best_params": {
+        "svr__C": 100.0,
+        "svr__epsilon": 0.01,
+        "svr__gamma": 0.01,
+        "svr__kernel": "rbf"
+      },
+      "cv_rmse_mean": 0.028601725172629378,
+      "cv_rmse_std": 0.012213761222430456,
+      "cv_fold_scores": [
+        0.04946143801176977,
+        0.01793340498922731,
+        0.02113235009846355,
+        0.018950876610472928,
+        0.03553055615321334
+      ],
+      "test_rmse": 0.026389605837125373,
+      "test_mae": 0.009476240409451822,
+      "test_r2": 0.999472094883458,
+      "test_mape": 1.2789949571801433,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 8000,
+      "seconds_elapsed": 607.9298473999952,
+      "notes": "SVR-RBF GridSearchCV ran on a chronological subsample of 8000 rows from 40344 train rows to keep CV tractable; best params then refit on the full training window."
+    }
+  }
+}

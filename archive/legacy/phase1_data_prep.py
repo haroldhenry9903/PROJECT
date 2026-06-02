@@ -2,7 +2,7 @@
 Legacy single-script Phase 1 pipeline: loads `data/raw/sarawak_weather_data.csv`, runs
 preprocess + pvlib synthesis in one process, and writes `data/processed/sarawak_weather_processed.csv`.
 
-The canonical split pipeline is `phase1a_data_cleaning.py` then `phase1b_physics_synthesis.py`
+The canonical (current) pipeline is `phase1_split_multi_region.py` then `phase1b_physics_synthesis.py`
 using `data/raw/sarawak_weather20_25.csv` through cleaned → processed.
 """
 

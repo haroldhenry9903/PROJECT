@@ -114,16 +114,37 @@ def tariff_rate_from_config(hour: int, *, tariff_cfg: dict) -> float:
 
 def main():
     repo = repo_root()
-    config_path = sys.argv[sys.argv.index("--config") + 1] if "--config" in sys.argv else "experiment_config.json"
+    argv = sys.argv[1:]
+    config_path = "experiment_config.json"
+    region: str | None = None
+    i = 0
+    while i < len(argv):
+        if argv[i] == "--config" and i + 1 < len(argv):
+            config_path = argv[i + 1]; i += 2; continue
+        if argv[i] == "--region" and i + 1 < len(argv):
+            region = argv[i + 1]; i += 2; continue
+        i += 1
+
     cfg_path = resolve_repo_path(repo, config_path)
     cfg = _load_config(str(cfg_path))
+    paths_cfg = cfg.get("paths", {}) or {}
 
-    input_filepath = str(
-        resolve_repo_path(repo, cfg.get("paths", {}).get("phase1_processed_csv", "data/processed/sarawak_weather_processed.csv"))
-    )
-    output_filepath = str(
-        resolve_repo_path(repo, cfg.get("paths", {}).get("baseline_results_csv", "baseline_simulation_results.csv"))
-    )
+    # Region-aware path resolution. When --region is supplied AND the config
+    # defines templates, use them; otherwise fall back to the flat single-region
+    # paths so legacy callers (`python phase2_baseline_sim.py`) keep working.
+    processed_tpl = paths_cfg.get("processed_csv_template")
+    baseline_tpl = paths_cfg.get("baseline_results_template")
+    if region and processed_tpl and baseline_tpl:
+        input_filepath = str(resolve_repo_path(repo, processed_tpl.format(region=region)))
+        output_filepath = str(resolve_repo_path(repo, baseline_tpl.format(region=region)))
+        print(f"[phase2] region={region}  in={input_filepath}  out={output_filepath}")
+    else:
+        input_filepath = str(
+            resolve_repo_path(repo, paths_cfg.get("phase1_processed_csv", "data/processed/sarawak_weather_processed.csv"))
+        )
+        output_filepath = str(
+            resolve_repo_path(repo, paths_cfg.get("baseline_results_csv", "baseline_simulation_results.csv"))
+        )
     seed = int(cfg.get("seed", {}).get("numpy_seed", 42))
     rng = np.random.default_rng(seed)
     tariff_cfg = cfg.get("tariff", {}) if isinstance(cfg, dict) else {}
@@ -198,8 +219,10 @@ def main():
     df['Hourly_Cost_RM'] = hourly_cost_history
     
     print(f"Saving baseline simulation dataframe to {output_filepath}...")
+    from pathlib import Path as _Path  # local import keeps module headers untouched
+    _Path(output_filepath).parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_filepath)
-    
+
     print("Phase 2: Baseline Environment Simulation completed successfully!")
 
 if __name__ == "__main__":

@@ -1,0 +1,68 @@
+{
+  "region": "bintulu",
+  "cv_strategy": "TimeSeriesSplit",
+  "cv_splits": 5,
+  "chronological_split_date": "2024-08-08",
+  "features": [
+    "ghiradiation",
+    "temp",
+    "humidity",
+    "precip",
+    "cloudcover",
+    "hour",
+    "month"
+  ],
+  "target": "Target_Power_kW",
+  "algorithms": {
+    "rf": {
+      "best_params": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "min_samples_split": 2,
+        "n_estimators": 200
+      },
+      "cv_rmse_mean": 0.03406142421596494,
+      "cv_rmse_std": 0.010448765681233466,
+      "cv_fold_scores": [
+        0.034275129832135244,
+        0.029502838365066408,
+        0.026467627731002256,
+        0.054104237631612,
+        0.025957287520008802
+      ],
+      "test_rmse": 0.02409922215229176,
+      "test_mae": 0.007529894823524607,
+      "test_r2": 0.9995897370816053,
+      "test_mape": 2.0491254913404275,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 40344,
+      "seconds_elapsed": 1188.119115300011,
+      "notes": "GridSearchCV used the full training window."
+    },
+    "svm": {
+      "best_params": {
+        "svr__C": 100.0,
+        "svr__epsilon": 0.01,
+        "svr__gamma": 0.01,
+        "svr__kernel": "rbf"
+      },
+      "cv_rmse_mean": 0.03713079422013887,
+      "cv_rmse_std": 0.015814198769945713,
+      "cv_fold_scores": [
+        0.03372579449726881,
+        0.04118523178049658,
+        0.02333795686231978,
+        0.06544870156666782,
+        0.021956286393941347
+      ],
+      "test_rmse": 0.017875387076203883,
+      "test_mae": 0.00936141648044282,
+      "test_r2": 0.9997742815161347,
+      "test_mape": 1.363264174835978,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 8000,
+      "seconds_elapsed": 578.9646633999655,
+      "notes": "SVR-RBF GridSearchCV ran on a chronological subsample of 8000 rows from 40344 train rows to keep CV tractable; best params then refit on the full training window."
+    }
+  }
+}

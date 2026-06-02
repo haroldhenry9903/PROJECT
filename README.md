@@ -1,13 +1,13 @@
-# AI-Driven Solar Battery Optimizer — Sarawak Grid-Tied Home Simulation
+# AI-Driven Solar Battery Optimizer — Multi-Region Sarawak Simulation
 
-This repository implements a **deterministic, hour-by-hour simulation** of a **grid-tied residential system** in **Sarawak (Kuching)** with **solar PV**, a **home battery**, and a **time-of-use (ToU) electricity tariff**. It compares:
+This repository implements a **deterministic, hour-by-hour simulation** of a **grid-tied residential system** across **five Sarawak regions** (**Kuching, Bintulu, Kapit, Miri, Sri Aman**) with **solar PV**, a **home battery**, and a **time-of-use (ToU) electricity tariff**. It compares:
 
 | Strategy | Idea |
 |----------|------|
 | **Baseline** | Reactive self-consumption: the battery always tries to cover net load at each hour. |
-| **Smart (AI-assisted)** | Uses a **Random Forest** forecast of next-day PV energy to trigger **Conservation Mode** and a **peak-reserve** discharge policy on “low solar” days. |
+| **Smart (AI-assisted)** | Uses a forecast of next-day PV energy — from either a **Random Forest** or an **SVR/SVM** model trained per region — to trigger **Conservation Mode** and a **peak-reserve** discharge policy on “low solar” days. |
 
-The physics (battery limits, efficiency, grid import clipping) are shared; only the **control policy** differs. Economic analysis uses **grid imports only** (no feed-in tariff). See `ASSUMPTIONS.md` for the full list of modelling assumptions.
+The physics (battery limits, efficiency, grid import clipping) are shared; only the **control policy** differs. Both forecasters share the same midnight prediction interface, so the smart controller is plug-and-play: any model with a `.predict(X)` method that accepts the 7-column feature window works. Economic analysis uses **grid imports only** (no feed-in tariff). See [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) for the full list of modelling assumptions.
 
 ---
 
@@ -15,25 +15,29 @@ The physics (battery limits, efficiency, grid import clipping) are shared; only 
 
 | Path | Purpose |
 |------|---------|
-| `experiment_config.json` | **Single source of truth** for paths, battery, tariff, controller knobs, seeds, pipeline flags, and evaluation metadata. |
+| `experiment_config.json` | **Single source of truth** for regions, models, paths, battery, tariff, controller knobs, seeds, **forecast-error model**, pipeline flags, and evaluation metadata. |
 | `core_battery_model.py` | Battery **digital twin**: `Battery` class and `update_soc(p_request_kw)`. |
-| `phase1a_data_cleaning.py` | Raw weather CSV → cleaned hourly series (`data/processed/..._cleaned.csv`). |
-| `phase1b_physics_synthesis.py` | Cleaned data + **pvlib** model chain → `Target_Power_kW` (`data/processed/sarawak_weather_processed.csv`). |
-| `phase1_data_prep.py` | **Legacy** monolithic prep (optional); see its docstring. |
-| `phase2_baseline_sim.py` | Baseline simulation → `baseline_simulation_results.csv` (or path from config). |
-| `phase3_ai_training.py` | Train Random Forest PV forecaster → `models/rf_forecast_model.joblib`. |
-| `phase4_smart_optimizer.py` | Smart policy simulation → `smart_simulation_results.csv`. |
-| `run_all.py` | Orchestrates phases 2→4, validates outputs, writes **timestamped** `results/YYYYMMDD_HHMM/`. |
-| `phase5_dashboard.py` | **Streamlit** UI: explain, live day, yearly comparison, model metrics. |
+| `phase1_split_multi_region.py` | Splits the multi-region raw CSV into per-region cleaned series (`data/processed/<region>_weather_cleaned.csv`). |
+| `phase1b_physics_synthesis.py` | Per-region **pvlib** `ModelChain` (lat/lon from config) → `Target_Power_kW` (`data/processed/<region>_weather_processed.csv`). |
+| `phase2_baseline_sim.py` | Per-region baseline simulation (`--region <name>`); writes `results/_per_region/<region>_baseline.csv` and the legacy root-level `baseline_simulation_results.csv`. |
+| `phase3_ai_training.py` | Trains **RF and SVM** forecasters per region with **`TimeSeriesSplit(5)`** CV. Emits `models/{rf,svm}_forecast_model_<region>.joblib`, `models/cv_report_<region>.json`, `models/cv_results_{rf,svm}_<region>.csv`, and training figures under `figures/training/<region>/`. |
+| `phase4_smart_optimizer.py` | Smart-policy simulation parameterised by `(--region, --algo)`. Calls `simulate(df, model, cfg)` with the chosen forecaster; writes `smart_simulation_results.csv` and the per-region copy. |
+| `run_all.py` | Orchestrates phases 1→4 across **regions × algos**, validates outputs, runs the σ-sweep, computes statistical tests, writes **timestamped** `results/YYYYMMDD_HHMM/<region>/<algo>/` plus a top-level `summary.csv` and `verdict.txt`. |
+| `phase5_dashboard.py` | **Streamlit** UI with sidebar **region + algo** selectors, evaluation tabs, and a six-section "Tab 4" (model comparison, training figures, held-out accuracy, simulation validation, statistical tests, forecast sensitivity sweep). |
 | `repo_paths.py` | Resolves paths relative to the repo root. |
-| `data/raw/` | Source CSVs (e.g. `sarawak_weather20_25.csv`; legacy `sarawak_weather_data.csv` for old prep). |
-| `data/processed/` | Cleaned + synthesized datasets used by training and simulations. |
-| `models/` | Trained forecaster (`rf_forecast_model.joblib`). |
-| `results/YYYYMMDD_HHMM/` | Full artifact bundle from `run_all.py` (CSVs, `metrics.json`, figures, `config_snapshot.json`). |
-| `eda_metrics/` | Optional EDA plots from Phase 1a (if generated). |
+| `archive/legacy/` | Single-region predecessors of Phase 1 (`phase1a_data_cleaning.py`, `phase1_data_prep.py`) kept for historical reference. |
+| `tests/` | `pytest` suite (30 tests) covering multi-region split contract, in-process simulation, forecast-noise determinism. |
+| `data/raw/` | Source CSVs (`swkdataweather.csv` is the canonical multi-region input). |
+| `data/processed/` | Per-region cleaned + synthesised datasets used by training and simulations. |
+| `models/` | Per-region forecasters and CV reports (`{rf,svm}_forecast_model_<region>.joblib`, `cv_report_<region>.json`). |
+| `figures/training/<region>/` | Per-region training diagnostics (fold scores, learning curves, validation curves, RF-vs-SVM comparison). |
+| `results/YYYYMMDD_HHMM/` | Full artifact bundle from `run_all.py` (per-region/per-algo CSVs, `metrics.json`, figures, `config_snapshot.json`, `summary.csv`, `verdict.txt`). |
+| `results/_per_region/` | Latest per-region baseline + smart CSVs (regenerated by phase2 / phase4; gitignored). |
+| `docs/` | Long-form documentation: `ASSUMPTIONS.md`, `VALIDATION.md`, `PROJECT_EXPLANATION_DETAILED.md`, plus `docs/figures/` for thesis figures. |
+| `eda_metrics/` | Optional EDA plots (if generated). |
 | `tools/` | Utilities (e.g. PDF text extraction). |
 
-Phases 2–5 read default paths from `experiment_config.json` under `paths`.
+Phases 2–5 read default paths from `experiment_config.json` under `paths` and the active region list from `regions`.
 
 ---
 
@@ -48,7 +52,7 @@ Install dependencies from the repo root:
 python -m pip install -r requirements.txt
 ```
 
-Core scientific stack includes **pandas**, **numpy**, **scikit-learn**, **matplotlib**, **pvlib** (Phase 1b), **streamlit** (dashboard). Keep **scikit-learn** aligned with `requirements.txt` when reloading saved models to avoid version warnings.
+Core scientific stack includes **pandas**, **numpy**, **scikit-learn**, **scipy** (Wilcoxon and paired-t tests), **matplotlib**, **seaborn**, **pvlib** (Phase 1b), **streamlit** (dashboard), and **joblib** (model persistence). Keep **scikit-learn** aligned with `requirements.txt` when reloading saved models to avoid version warnings. The pinned file in this repo is a full `pip freeze` from the development environment — every transitive dependency is captured for examiner reproducibility.
 
 ---
 
@@ -56,35 +60,41 @@ Core scientific stack includes **pandas**, **numpy**, **scikit-learn**, **matplo
 
 ### One-command pipeline (recommended)
 
-Creates `results/YYYYMMDD_HHMM/` containing:
+Creates `results/YYYYMMDD_HHMM/` containing one `<region>/<algo>/` subfolder per cell of the regions × algos grid, plus top-level summary files:
 
-| Artifact | Description |
-|----------|-------------|
-| `baseline_simulation_results.csv` | Full continuous baseline run (copied from project root output paths in config). |
-| `smart_simulation_results.csv` | Full continuous smart run. |
-| `daily_results.csv` | **Per-day** re-simulation with shared initial SoC (fair day-isolated comparison). |
-| `metrics.json` | KPIs: continuous CSV sums **and** daily-reset statistics; includes `_meta` definitions. |
-| `figures/*.png` | Cost comparison, daily savings / peak-reduction histograms, SoC distributions. |
-| `config_snapshot.json` | Copy of the config used for that run. |
+| Path within the timestamped folder | Description |
+|------------------------------------|-------------|
+| `<region>/<algo>/baseline_simulation_results.csv` | Full continuous baseline run for that region (load + PV + battery + cost). |
+| `<region>/<algo>/smart_simulation_results.csv` | Smart run for that region, using the chosen forecaster (`rf` or `svm`). |
+| `<region>/<algo>/daily_results.csv` | **Per-day** re-simulation with shared initial SoC (fair day-isolated comparison). |
+| `<region>/<algo>/forecast_sensitivity.csv` | **Per-σ summary** (mean across seeds with `*_std`, `*_min`, `*_max` siblings) of annual smart-vs-baseline KPIs swept across GHI forecast sigmas (`0.00`, `0.10`, `0.20`, `0.30`, `0.40`). σ=0 reproduces the perfect-foresight upper bound. *Skipped when `run_all.py --no-sweeps` is used.* |
+| `<region>/<algo>/forecast_sensitivity_raw.csv` | One row per `(σ, seed)` trial with the raw KPIs, for examiners who want to inspect the un-aggregated samples. |
+| `<region>/<algo>/metrics.json` | KPIs: continuous CSV sums **and** daily-reset statistics; `_meta` definitions; the active `forecast` block; and `statistical_tests` (Wilcoxon, paired-t, perfect-foresight ceiling %). |
+| `<region>/<algo>/figures/*.png` | Cost comparison, daily savings / peak-reduction histograms, SoC distributions, **`forecast_sensitivity.png`** (savings RM ±1σ vs forecast σ, with the active σ marked). |
+| `config_snapshot.json` | Copy of the config used for that run (root of the timestamped folder). |
+| `summary.csv` | One row per `(region, algo)` cell with the headline KPIs and the per-test p-values — the table you cite in the thesis comparison chapter. |
+| `verdict.txt` | Plain-text bullet list summarising, per region, which algorithm won by which margin and whether the difference reached p < 0.05. |
 
 ```powershell
 python run_all.py
 ```
 
-Use a custom config:
+Use a custom config or restrict the grid:
 
 ```powershell
 python run_all.py experiment_config.json
+python run_all.py --region kuching --algo rf      # single cell
+python run_all.py --no-sweeps                     # skip σ-sensitivity loop
 ```
 
 ### Optional steps inside `run_all.py`
 
 In `experiment_config.json`, under `pipeline`:
 
-- `"run_phase1": true` — runs `phase1a_data_cleaning.py` then `phase1b_physics_synthesis.py` first (requires appropriate **raw** CSVs under `data/raw/`).
-- `"run_phase3_train_model": true` — retrains the Random Forest before Phase 4.
+- `"run_phase1": true` — runs `phase1_split_multi_region.py` then `phase1b_physics_synthesis.py` first (requires `swkdataweather.csv` under `data/raw/` or the repo root).
+- `"run_phase3_train_model": true` — retrains both **RF** and **SVM** forecasters (per region, full `TimeSeriesSplit(5)` grid search) before Phase 4.
 
-Default is `false` for both (assumes processed data and an existing model).
+Default is `false` for both (assumes processed data and existing `models/{rf,svm}_forecast_model_<region>.joblib` files).
 
 ### Dashboard
 
@@ -102,44 +112,59 @@ Enable **“View a saved results run”** and pick the matching `results/YYYYMMD
 
 ### Phase 1 — Data: cleaning + PV synthesis
 
-**Canonical split pipeline:**
+**Canonical multi-region pipeline:**
 
 ```powershell
-python phase1a_data_cleaning.py
+python phase1_split_multi_region.py
 python phase1b_physics_synthesis.py
 ```
 
-Typical outputs:
+Typical outputs (per region):
 
-- `data/processed/sarawak_weather_cleaned.csv` — hourly, gap-filled weather aligned to Kuching.
-- `data/processed/sarawak_weather_processed.csv` — adds **`Target_Power_kW`** via **pvlib** `ModelChain` for a 5 kWp system near Kuching.
+- `data/processed/<region>_weather_cleaned.csv` — hourly, gap-filled weather aligned to the region's local time.
+- `data/processed/<region>_weather_processed.csv` — adds **`Target_Power_kW`** via **pvlib** `ModelChain` using each region's lat/lon from `experiment_config.json`.
 
-**Legacy:** `phase1_data_prep.py` for a single-script path from `data/raw/sarawak_weather_data.csv` (see script docstring).
+**Legacy (single-region, archived):** `archive/legacy/phase1_data_prep.py` and `archive/legacy/phase1a_data_cleaning.py` — kept for historical reference; superseded by `phase1_split_multi_region.py`.
 
 ### Phase 2 — Baseline simulation
 
 ```powershell
-python phase2_baseline_sim.py
+python phase2_baseline_sim.py --region kuching
 ```
 
-Supports `--config experiment_config.json`. Writes synthetic **load** (seeded), applies `Battery` to net power, applies **tariff** from config, exports baseline CSV.
+Supports `--config experiment_config.json` and `--region <name>` (defaults to the first region in config). Writes synthetic **load** (seeded), applies `Battery` to net power, applies **tariff** from config, exports baseline CSV to both the per-region cache (`results/_per_region/<region>_baseline.csv`) and the legacy root-level `baseline_simulation_results.csv`.
 
-### Phase 3 — Train PV forecaster
+### Phase 3 — Train PV forecasters (RF + SVM, per region)
 
 ```powershell
-python phase3_ai_training.py
-python phase3_ai_training.py --config experiment_config.json
+python phase3_ai_training.py                                # all regions, both algos
+python phase3_ai_training.py --region kuching --algo rf     # one cell
+python phase3_ai_training.py --smoke                        # tiny grids, ~30 s sanity run
 ```
 
-Uses processed CSV from `paths.phase1_processed_csv` and saves to `paths.rf_model_path`. **Features:** `ghiradiation`, `temp`, `humidity`, `precip`, `cloudcover`, `hour`, `month`. **Target:** `Target_Power_kW`. **Chronological split:** train before `2024-08-08`, test from `2024-08-08` onward. Tuning via `GridSearchCV` on Random Forest hyperparameters.
+**Features:** `ghiradiation`, `temp`, `humidity`, `precip`, `cloudcover`, `hour`, `month`. **Target:** `Target_Power_kW`. **Chronological split:** train before `2024-08-08`, test from `2024-08-08` onward. **Cross-validation:** `TimeSeriesSplit(n_splits=5)` (no shuffle — causality preserved). Tuning via `GridSearchCV` over:
+
+- **RandomForestRegressor** — `n_estimators`, `max_depth`, `min_samples_leaf`, `max_features` (wide grid).
+- **SVR** with RBF kernel inside a `Pipeline(StandardScaler, SVR)` — `C`, `gamma`, `epsilon`. Grid search runs on an 8 k-row stratified subsample (config `phase3.svm_subsample`) then refits the best estimator on the full training set.
+
+Outputs per region:
+
+- `models/{rf,svm}_forecast_model_<region>.joblib` — the fitted estimator.
+- `models/cv_report_<region>.json` — per-algo `cv_rmse_mean`, `cv_rmse_std`, fold scores, best params, `test_{rmse,mae,r2,mape}` on the held-out window.
+- `models/cv_results_{rf,svm}_<region>.csv` — full GridSearchCV table.
+- `figures/training/<region>/{rf,svm}_fold_scores.png` — bar chart of per-fold RMSE.
+- `figures/training/<region>/{rf,svm}_learning_curve.png` — train vs validation RMSE as a function of training size.
+- `figures/training/<region>/{rf,svm}_validation_curve.png` — RMSE as a function of the headline hyperparameter (`max_depth` for RF, `C` for SVM).
+- `figures/training/<region>/compare_<region>.png` — side-by-side test-window metrics for the two algos.
 
 ### Phase 4 — Smart optimizer
 
 ```powershell
-python phase4_smart_optimizer.py
+python phase4_smart_optimizer.py --region kuching --algo rf
+python phase4_smart_optimizer.py --region miri --algo svm
 ```
 
-Loads baseline CSV (for consistent load), loads RF model, applies midnight forecast + Conservation Mode + peak-reserve policy.
+Loads the per-region baseline CSV (for consistent load), loads the requested forecaster (`{algo}_forecast_model_<region>.joblib`), and applies the midnight forecast + Conservation Mode + peak-reserve policy. Internally the work is done by `simulate(df, model, cfg)` — anything with a `.predict(X)` method on the 7-column feature window works.
 
 ### Phase 5 — Dashboard
 
@@ -147,20 +172,27 @@ Loads baseline CSV (for consistent load), loads RF model, applies midnight forec
 streamlit run phase5_dashboard.py
 ```
 
+The sidebar exposes **region** and **algo** selectors so you can flip between `(region, algo)` cells of a saved `results/YYYYMMDD_HHMM/` run without restarting. Tab 4 splits into six numbered sections: model comparison, training figures, held-out accuracy, simulation validation (with LaTeX), statistical tests (Wilcoxon + paired-t + perfect-foresight %), and forecast sensitivity sweep.
+
 ---
 
 ## Configuration reference (`experiment_config.json`)
 
 | Section | Role |
 |---------|------|
-| `paths` | `phase1_processed_csv`, `baseline_results_csv`, `smart_results_csv`, `rf_model_path`. |
+| `regions` | List of regions to run (`kuching`, `bintulu`, `kapit`, `miri`, `sri_aman`). Each entry carries `lat`, `lon`, and per-region path overrides; `raw_multi_csv` points at the canonical multi-region CSV. |
+| `models` | List of algorithms to train and simulate with (`rf`, `svm`). |
+| `paths` | Path templates: `raw_multi_region_csv`, `phase1_processed_template`, `baseline_results_template`, `smart_results_template`, model + CV-report templates. `{region}` and `{algo}` are filled in at runtime. |
 | `seed.numpy_seed` | Fixes synthetic load generation (deterministic reruns). |
+| `seed.forecast_seed` | Convenience mirror of `forecast.seed`. The value in `forecast.seed` takes precedence if both are set. |
 | `battery` | `capacity_kwh`, `inverter_power_kw`, `soc_min`, `efficiency_rt` (round-trip; internally split √(η) per direction in `core_battery_model.py`). |
 | `tariff` | `peak_start_hour`, `peak_end_hour`, `peak_rate_rm_per_kwh`, `offpeak_rate_rm_per_kwh` — **same** tariff for baseline and smart cost columns. |
 | `controller` | `e_crit_kwh` (low-solar threshold), `soc_reserve`, `essential_discharge_kw`. |
+| `forecast` | **Forecast-error model** applied to next-24h weather features at every midnight before the forecaster predicts. Closes the perfect-foresight loophole. Keys: `enabled`, `ghi_noise_sigma`, `ghi_bias`, `cloudcover_noise_sigma`, `temp_noise_sigma`, `humidity_noise_sigma`, `precip_noise_sigma`, `clip_nonneg`, `seed`, **`sweep_sigmas`** (list, default `[0.00, 0.10, 0.20, 0.30, 0.40]`), **`sweep_seeds`** (int, default `10`). Setting `ghi_noise_sigma=0` and all other sigmas/biases to 0 reproduces the perfect-foresight upper bound. |
+| `phase3` | Training knobs: `test_split_date`, `svm_subsample` (default `8000` rows for grid search), `cv_splits` (default `5`). |
 | `scenario` | `pv_scale`, `load_scale` (dashboard / daily re-sim), `initial_soc_live`, `initial_soc_daily_reset`. |
 | `evaluation` | `headline_primary`, `daily_reset_soc_fraction_key` — documented in `metrics.json._meta` and copied to `config_snapshot.json`. |
-| `pipeline` | `run_phase1`, `run_phase3_train_model`. |
+| `pipeline` | `run_phase1`, `run_phase3_train_model` — both default `false` after the first nightly run so reruns skip heavy training. |
 
 ---
 
@@ -173,7 +205,7 @@ streamlit run phase5_dashboard.py
 
 Legacy top-level keys remain for backward compatibility; **`by_evaluation_mode`** and **`_meta`** spell out definitions and the **gap** between continuous total savings and the sum of daily savings (expected non-zero; see `_meta.gap_explainer`).
 
-For SSR, total import, and cost under ToU, read `ASSUMPTIONS.md` — cost can improve when peak imports fall even if total kWh imported changes modestly.
+For SSR, total import, and cost under ToU, read [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) — cost can improve when peak imports fall even if total kWh imported changes modestly.
 
 ---
 
@@ -191,6 +223,69 @@ Failures raise errors so broken runs do not silently become thesis numbers.
 
 ---
 
+## Forecast realism (closes the perfect-foresight loophole)
+
+`Target_Power_kW` is computed from clean weather columns by **pvlib**
+(`phase1b_physics_synthesis.py`) and the Random Forest in `phase3_ai_training.py`
+is trained on those same weather columns. If Phase 4 fed the RF the
+**ground-truth** next-24h features (as it did historically), the smart
+controller would effectively have **perfect day-ahead knowledge** of tomorrow's
+weather — its "AI savings" would be an upper bound, not a realistic deployment
+estimate.
+
+To make the comparison honest, every midnight the smart controller now perturbs
+the next-24h features with a **seeded, configurable forecast-error model**
+**before** calling `rf_model.predict(...)`:
+
+- `ghiradiation`, `precip` → multiplicative log-normal noise
+  \( x' = \max(0, x \cdot (1 + \mathrm{bias}) \cdot e^{\mathcal{N}(0,\sigma)}) \).
+- `temp` → additive gaussian \( x' = x + \mathcal{N}(0,\sigma_T) \).
+- `humidity`, `cloudcover` → additive gaussian, clipped to `[0, 100]`.
+- `hour`, `month` → never perturbed.
+
+Defaults are tuned for tropical day-ahead error (`ghi_noise_sigma=0.20`).
+Setting `forecast.ghi_noise_sigma=0` and all other sigmas/biases to 0
+reproduces the **perfect-foresight upper bound** for sensitivity studies.
+Removing the `forecast` block, or setting `forecast.enabled=false`, is fully
+backward-compatible: numeric outputs match pre-loophole runs to 1e-9.
+
+`run_all.py` automatically runs a **multi-seed** sensitivity sweep across
+σ ∈ `forecast.sweep_sigmas` (default `[0.00, 0.10, 0.20, 0.30, 0.40]`) with
+`forecast.sweep_seeds` (default `10`) seeded trials per σ, in-process (no
+sub-process per trial), and writes:
+
+- `results/<stamp>/forecast_sensitivity.csv` — per-σ summary with mean
+  values plus `total_savings_rm_std/_min/_max` siblings (and the same for
+  peak-import reduction, conservation-day count, daily-PV MAPE).
+- `results/<stamp>/forecast_sensitivity_raw.csv` — one row per `(σ, seed)`
+  trial for auditing.
+- `results/<stamp>/figures/forecast_sensitivity.png` — savings (RM) ±1σ vs
+  forecast σ, with the active headline σ marked by a dashed orange line.
+- `results/<stamp>/metrics.json._meta.forecast` — the active forecast block.
+- `results/<stamp>/smart_simulation_results.csv` gains a new column,
+  `Forecast_Energy_kWh_Predicted`, so reviewers can audit predicted-vs-actual
+  daily PV totals row-by-row.
+
+The dashboard surfaces these artifacts:
+
+- **Sidebar** → `Saved run: metrics.json` → `Forecast realism (σ used for the
+  headline)`: shows `_meta.forecast`, the perfect-foresight gap, and the
+  spread across seeds.
+- **Tab 4** → `Forecast sensitivity sweep`: renders the per-σ table and the
+  errorbar figure inline; legacy runs lacking these files show a friendly
+  notice instead of erroring out.
+- **Tab 2** also inherits the loophole fix: when no saved smart flag exists
+  for the selected day, the RF-fallback now perturbs features through the
+  same `apply_forecast_noise` path before predicting, with an RNG seeded
+  deterministically from the calendar date.
+
+For thesis writing: report your headline savings at the **default σ** with
+its standard deviation across seeds, and cite the σ=0 row of
+`forecast_sensitivity.csv` as the perfect-foresight upper bound to make the
+gap explicit.
+
+---
+
 ## Key assumptions (short list)
 
 - **No export revenue** — costing uses imports only.
@@ -198,16 +293,20 @@ Failures raise errors so broken runs do not silently become thesis numbers.
 - **Tz-naive** hourly timestamps in simulation CSVs (pipeline normalizes where needed).
 - **Tariff** — single definition in config for both strategies.
 
-Full detail: **`ASSUMPTIONS.md`**.
+Full detail: **[`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md)**.
 
 ---
 
 ## Documentation
 
+All long-form docs live under [`docs/`](docs/):
+
 | File | Content |
 |------|---------|
-| `PROJECT_EXPLANATION_DETAILED.md` | Long-form methodology, algorithms, dashboard tabs, thesis defence notes. |
-| `ASSUMPTIONS.md` | Conventions, evaluation modes, metrics interpretation. |
+| [`docs/PROJECT_EXPLANATION_DETAILED.md`](docs/PROJECT_EXPLANATION_DETAILED.md) | Long-form methodology, algorithms, dashboard tabs, thesis defence notes. |
+| [`docs/ASSUMPTIONS.md`](docs/ASSUMPTIONS.md) | Conventions, evaluation modes, metrics interpretation. |
+| [`docs/VALIDATION.md`](docs/VALIDATION.md) | Numerical validation formulas and tolerances applied by `run_all.py`. |
+| [`docs/figures/`](docs/figures/) | Thesis figures (PNGs) and the small scripts that regenerate them. |
 
 ---
 
@@ -215,10 +314,12 @@ Full detail: **`ASSUMPTIONS.md`**.
 
 | Issue | What to check |
 |-------|----------------|
-| `joblib` / sklearn warnings | Match package versions to `requirements.txt`. |
+| `joblib` / sklearn warnings | Match package versions to `requirements.txt` (the file is a full `pip freeze`). |
 | Tab 2 vs Tab 3 mismatch | Align **initial SoC** (live slider vs `initial_soc_daily_reset`). |
-| Phase 1 fails | Raw CSV path/columns; `phase1a` resampling and tz handling. |
-| Empty or missing `results/` | Run `python run_all.py` from repo root; confirm Phase 2/4 write paths in config. |
+| Phase 1 fails | Raw CSV path/columns; `phase1_split_multi_region.py` reads `swkdataweather.csv` from `data/raw/` or the repo root. |
+| Empty or missing `results/` | Run `python run_all.py` from repo root; confirm `regions` and `models` lists in config, and Phase 2/4 write paths. |
+| Tab 4 missing "% of perfect-foresight ceiling" or "Forecast sensitivity sweep" | Those panels are cosmetically hidden when `forecast_sensitivity.csv` was not produced (e.g. `run_all.py --no-sweeps`). Re-run without the flag to repopulate. |
+| `(region, algo)` cell missing from sidebar | The selector only lists cells the run actually wrote. Check `results/<stamp>/<region>/<algo>/metrics.json` exists. |
 
 ---
 
@@ -229,14 +330,15 @@ To keep the repository lightweight and reviewable, this repo tracks **source + c
 **Tracked (committed):**
 - Python source: `phase*.py`, `core_battery_model.py`, `run_all.py`, `repo_paths.py`
 - Configuration: `experiment_config.json`, `requirements.txt`
-- Documentation: `README.md`, `ASSUMPTIONS.md`, `PROJECT_EXPLANATION_DETAILED.md`
+- Documentation: `README.md`, `docs/ASSUMPTIONS.md`, `docs/VALIDATION.md`, `docs/PROJECT_EXPLANATION_DETAILED.md`
 - Utilities: `tools/` (e.g. `tools/pdf_to_text.py`)
 
 **Not tracked (generated / large):**
 - Run artifacts: `results/YYYYMMDD_HHMM/` (CSVs, `metrics.json`, figures, `config_snapshot.json`)
-- Root outputs: `baseline_simulation_results.csv`, `smart_simulation_results.csv`
+- Per-region CSV cache: `results/_per_region/` (latest per-region baseline + smart outputs)
+- Top-level scratch outputs from direct `phase2`/`phase4` invocations: `baseline_simulation_results.csv`, `smart_simulation_results.csv`
 - Trained models: `models/*.joblib`
-- Generated plots: `docs/figures/*.png`, `eda_metrics/*.png`
+- Generated plots: `docs/figures/*.png`, `figures/training/`, `eda_metrics/*.png`
 - Datasets: `data/raw/`, `data/processed/`
 
 **How to reproduce (after you have the dataset):**
@@ -253,6 +355,8 @@ To keep the repository lightweight and reviewable, this repo tracks **source + c
 ## Citation / reproducibility checklist
 
 - [ ] Fixed `experiment_config.json` (or archived `config_snapshot.json` from `results/`).
-- [ ] Same `seed.numpy_seed` for comparable load traces.
-- [ ] Record Python and `scikit-learn` versions used when training the RF model.
+- [ ] Same `seed.numpy_seed` and `forecast.seed` for comparable load traces and noisy-forecast draws.
+- [ ] Record Python, `scikit-learn`, `scipy`, and `pvlib` versions used when training the RF/SVM models.
+- [ ] Cite the headline `(region, algo)` cell and the σ used; report savings as `mean ± std` across the `forecast.sweep_seeds` trials.
 - [ ] For figures, note whether KPIs come from **continuous** or **daily-reset** metrics.
+- [ ] Cite the Wilcoxon (or paired-t) p-value from `metrics.json#statistical_tests` to demonstrate statistical significance.

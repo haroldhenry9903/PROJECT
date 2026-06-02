@@ -1,0 +1,68 @@
+{
+  "region": "kuching",
+  "cv_strategy": "TimeSeriesSplit",
+  "cv_splits": 5,
+  "chronological_split_date": "2024-08-08",
+  "features": [
+    "ghiradiation",
+    "temp",
+    "humidity",
+    "precip",
+    "cloudcover",
+    "hour",
+    "month"
+  ],
+  "target": "Target_Power_kW",
+  "algorithms": {
+    "svm": {
+      "best_params": {
+        "svr__C": 100.0,
+        "svr__epsilon": 0.01,
+        "svr__gamma": 0.01,
+        "svr__kernel": "rbf"
+      },
+      "cv_rmse_mean": 0.06048531936593486,
+      "cv_rmse_std": 0.01338141336381759,
+      "cv_fold_scores": [
+        0.0763359316285519,
+        0.04660743798273292,
+        0.0427923394697665,
+        0.07107206862848538,
+        0.0656188191201376
+      ],
+      "test_rmse": 0.04402211701741263,
+      "test_mae": 0.012640201630771253,
+      "test_r2": 0.9985774403662919,
+      "test_mape": 0.9681624275921359,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 8000,
+      "seconds_elapsed": 632.0442229000037,
+      "notes": "SVR-RBF GridSearchCV ran on a chronological subsample of 8000 rows from 40344 train rows to keep CV tractable; best params then refit on the full training window."
+    },
+    "rf": {
+      "best_params": {
+        "max_depth": 20,
+        "min_samples_leaf": 4,
+        "min_samples_split": 2,
+        "n_estimators": 200
+      },
+      "cv_rmse_mean": 0.05005436346326371,
+      "cv_rmse_std": 0.0036147781002072244,
+      "cv_fold_scores": [
+        0.04586460747983184,
+        0.048076916792515245,
+        0.048058084990613044,
+        0.05232469390775246,
+        0.05594751414560592
+      ],
+      "test_rmse": 0.04366524919677472,
+      "test_mae": 0.011857915758375814,
+      "test_r2": 0.9986004110037648,
+      "test_mape": 3.060589929450943,
+      "n_train_full": 40344,
+      "n_train_used_for_gridsearch": 40344,
+      "seconds_elapsed": 1266.3685113000101,
+      "notes": "GridSearchCV used the full training window."
+    }
+  }
+}
