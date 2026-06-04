@@ -1,0 +1,1 @@
+Best model per region: kuching=rf (lowest_test_rmse), miri=rf (lowest_test_rmse), bintulu=svm (lowest_test_rmse), kapit=svm (lowest_test_rmse), sri_aman=rf (lowest_test_rmse)

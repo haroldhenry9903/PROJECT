@@ -1,0 +1,108 @@
+{
+  "baseline_total_cost_rm": 1277.6482868263063,
+  "smart_total_cost_rm": 1259.1861047880818,
+  "total_savings_rm": 18.462182038224455,
+  "baseline_total_import_kwh": 7702.287635230969,
+  "smart_total_import_kwh": 7776.612494989935,
+  "baseline_ssr_pct": 76.60142481924768,
+  "smart_ssr_pct": 76.37563530044108,
+  "baseline_peak_import_kwh": 1953.1160898981325,
+  "smart_peak_import_kwh": 1681.4808300422765,
+  "peak_import_reduction_kwh": 271.635259855856,
+  "conservation_days_count": 448,
+  "daily_savings_mean_rm": -0.07157623185973683,
+  "daily_savings_median_rm": 0.0,
+  "daily_savings_min_rm": -0.6587982999833756,
+  "daily_savings_max_rm": 0.3616060701924133,
+  "daily_peak_import_reduction_mean_kwh": 0.3055676875721163,
+  "by_evaluation_mode": {
+    "continuous_csv": {
+      "baseline_total_cost_rm": 1277.6482868263063,
+      "smart_total_cost_rm": 1259.1861047880818,
+      "total_savings_rm": 18.462182038224455,
+      "baseline_total_import_kwh": 7702.287635230969,
+      "smart_total_import_kwh": 7776.612494989935,
+      "baseline_ssr_pct": 76.60142481924768,
+      "smart_ssr_pct": 76.37563530044108,
+      "baseline_peak_import_kwh": 1953.1160898981325,
+      "smart_peak_import_kwh": 1681.4808300422765,
+      "peak_import_reduction_kwh": 271.635259855856
+    },
+    "daily_reset": {
+      "conservation_days_count": 448,
+      "daily_savings_mean_rm": -0.07157623185973683,
+      "daily_savings_median_rm": 0.0,
+      "daily_savings_min_rm": -0.6587982999833756,
+      "daily_savings_max_rm": 0.3616060701924133,
+      "daily_peak_import_reduction_mean_kwh": 0.3055676875721163,
+      "sum_daily_baseline_cost_rm": 465.7250339487957,
+      "sum_daily_smart_cost_rm": 596.5663857883947,
+      "sum_daily_savings_rm": -130.84135183959893
+    }
+  },
+  "_meta": {
+    "schema_version": "1.1",
+    "headline_primary": "continuous_csv_cost_and_peak",
+    "definitions": {
+      "continuous_csv": "Sums stored columns on the full continuous timelines copied from `baseline_simulation_results.csv` / `smart_simulation_results.csv`: `Hourly_Cost_RM`, `Grid_Import_kW`, `Load_kW`; peak import uses hours [7, 22) on the datetime index.",
+      "daily_reset": "Per-calendar-day re-simulation with SoC reset each day to 0.5000 (from config `scenario.initial_soc_daily_reset`); uses saved `Conservation_Mode_Active` flag per day for the smart branch. Not the same counterfactual as the continuous CSV year run."
+    },
+    "columns_used": {
+      "continuous_total_cost": "Hourly_Cost_RM",
+      "continuous_total_import": "Grid_Import_kW",
+      "continuous_total_load": "Load_kW"
+    },
+    "daily_reset_soc_init": 0.5,
+    "gap_continuous_total_savings_rm_minus_sum_daily_savings_rm": 149.30353387782338,
+    "gap_explainer": "`total_savings_rm` uses continuous CSV cost sums. `sum_daily_savings_rm` sums per-day (baseline_cost - smart_cost) from independent daily-reset simulations. A non-zero gap is expected.",
+    "validation": {
+      "tariff_cost_identity_passed": true,
+      "tariff_cost_identity_max_abs_err": 0.0,
+      "tariff_cost_identity_tol": 1e-05,
+      "samples_checked": 8
+    },
+    "forecast": {
+      "enabled": true,
+      "ghi_noise_sigma": 0.2,
+      "ghi_bias": 0.0,
+      "cloudcover_noise_sigma": 0.1,
+      "temp_noise_sigma": 1.5,
+      "humidity_noise_sigma": 5.0,
+      "precip_noise_sigma": 0.5,
+      "clip_nonneg": true,
+      "seed": 1337,
+      "sweep_sigmas": [
+        0.0,
+        0.1,
+        0.2,
+        0.3,
+        0.4
+      ],
+      "sweep_seeds": 10
+    },
+    "note_perfect_foresight_disabled": "When `forecast.enabled` is true the smart controller queries the RF with NOISY day-ahead weather features (seeded). Setting `forecast.ghi_noise_sigma=0`, `*_noise_sigma=0` and `ghi_bias=0` reproduces the perfect-foresight upper bound. See `forecast_sensitivity.csv` and `figures/forecast_sensitivity.png` for the savings curve as a function of forecast error.",
+    "e_crit_optimisation": {
+      "configured_e_crit_kwh": 18.0,
+      "argmax_e_crit_kwh": 18.0,
+      "sweep_summary_csv": "e_crit_sensitivity.csv"
+    }
+  },
+  "statistical_tests": {
+    "wilcoxon_signed_rank": {
+      "stat": 9484.0,
+      "p_value": 4.338093260327821e-50,
+      "n_pairs": 1828
+    },
+    "paired_t_test": {
+      "stat": -15.432983721390654,
+      "p_value": 1.3271744602194005e-50,
+      "n_pairs": 1828
+    },
+    "mean_daily_saving_rm": -0.07157623185973683,
+    "std_daily_saving_rm": 0.19829283811748394,
+    "pct_of_perfect_foresight_ceiling": NaN,
+    "oracle_ceiling_rm": NaN
+  },
+  "region": "bintulu",
+  "algo": "rf"
+}
