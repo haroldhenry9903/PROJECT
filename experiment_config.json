@@ -3,7 +3,7 @@
     "phase1_processed_csv": "data/processed/sarawak_weather_processed.csv",
     "baseline_results_csv": "baseline_simulation_results.csv",
     "smart_results_csv": "smart_simulation_results.csv",
-    "rf_model_path": "models/rf_forecast_model.joblib",
+    "rf_model_path": "models/rf_forecast_model_kuching.joblib",
     "raw_multi_region_csv": "swkdataweather.csv",
     "processed_csv_template": "data/processed/{region}_weather_processed.csv",
     "cleaned_csv_template": "data/processed/{region}_weather_cleaned.csv",

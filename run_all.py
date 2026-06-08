@@ -673,7 +673,7 @@ def run_forecast_sensitivity_sweep(
         df_phase4_input = df_phase4_input.set_index("datetime").sort_index()
         df_phase4_input.index = normalize_datetime_index_to_naive(df_phase4_input.index)
     if rf_model is None:
-        rf_path = repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model.joblib")
+        rf_path = repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model_kuching.joblib")
         rf_model = joblib.load(rf_path)
 
     raw_rows: List[Dict[str, Any]] = []
@@ -856,7 +856,7 @@ def run_e_crit_sensitivity_sweep(
         df_phase4_input = df_phase4_input.set_index("datetime").sort_index()
         df_phase4_input.index = normalize_datetime_index_to_naive(df_phase4_input.index)
     if rf_model is None:
-        rf_path = repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model.joblib")
+        rf_path = repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model_kuching.joblib")
         rf_model = joblib.load(rf_path)
 
     raw_rows: List[Dict[str, Any]] = []
@@ -1042,7 +1042,7 @@ def _resolve_per_region_model(repo: Path, cfg: Config, region: str, algo: str) -
     tpl = cfg.paths.get("model_template")
     if tpl:
         return repo / tpl.format(region=region, algo=algo)
-    return repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model.joblib")
+    return repo / cfg.paths.get("rf_model_path", "models/rf_forecast_model_kuching.joblib")
 
 
 def run_one_region_algo(

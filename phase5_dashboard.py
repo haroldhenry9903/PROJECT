@@ -754,7 +754,12 @@ def decide_conservation_mode_for_day(
     if df_smart_reference is not None and "Conservation_Mode_Active" in df_smart_reference.columns:
         try:
             flag = bool(df_smart_reference["Conservation_Mode_Active"].iloc[0])
-            return flag, "precomputed_flag", None
+            e_pred_val = None
+            if "Forecast_Energy_kWh_Predicted" in df_smart_reference.columns:
+                val = df_smart_reference["Forecast_Energy_kWh_Predicted"].iloc[0]
+                if not pd.isna(val):
+                    e_pred_val = float(val)
+            return flag, "precomputed_flag", e_pred_val
         except Exception:
             pass
 

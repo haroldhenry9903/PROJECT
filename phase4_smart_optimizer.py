@@ -357,7 +357,7 @@ def main():
         output_path = _resolve_path_template(repo, smart_tpl, region=region, algo=algo)
     else:
         data_path = str(resolve_repo_path(repo, paths_cfg.get("baseline_results_csv", "baseline_simulation_results.csv")))
-        model_path = str(resolve_repo_path(repo, paths_cfg.get("rf_model_path", "models/rf_forecast_model.joblib")))
+        model_path = str(resolve_repo_path(repo, paths_cfg.get("rf_model_path", "models/rf_forecast_model_kuching.joblib")))
         output_path = str(resolve_repo_path(repo, paths_cfg.get("smart_results_csv", "smart_simulation_results.csv")))
 
     print(f"[phase4] region={region}  algo={algo}")
